@@ -4,6 +4,7 @@ import java.net.URI
 
 plugins {
     `java-library`
+    maven
     kotlin("jvm") version "1.3.21"
 }
 
