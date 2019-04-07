@@ -26,6 +26,7 @@ import static net.kjp12.commands.utils.MiscellaneousUtils.getOrDefault;
 
 public class MainTest {
     public static User owner = null;
+
     public static void main(String[] args) {
         if (args.length == 0) {
             System.out.println("You are missing several arguments!");
@@ -38,10 +39,10 @@ public class MainTest {
             options.requester(new SerialRequester(new DefaultRateLimiter(), HttpClient.newBuilder().proxy(ProxySelector.of(new InetSocketAddress(args[4], Integer.parseInt(args[5]))))));
         }
         int node = args.length < 4 ? 0 : getOrDefault(() -> Integer.parseInt(args[1]), 0),
-            nodes = args.length < 4 ? 1 : getOrDefault(() -> Integer.parseInt(args[2]), 1),
-            shards = args.length < 4 ? 1 : getOrDefault(() -> Integer.parseInt(args[3]), 1),
-            tmp = (shards + nodes - 1) / nodes,
-            offset = tmp * node;
+                nodes = args.length < 4 ? 1 : getOrDefault(() -> Integer.parseInt(args[2]), 1),
+                shards = args.length < 4 ? 1 : getOrDefault(() -> Integer.parseInt(args[3]), 1),
+                tmp = (shards + nodes - 1) / nodes,
+                offset = tmp * node;
         options.shardManager(new DefaultShardManager(IntStream.range(offset, offset + (offset + tmp > shards ? shards - offset : tmp))));
 
         var catnip = Catnip.catnip(options);
@@ -49,7 +50,8 @@ public class MainTest {
         cl.CATEGORY_SYSTEM.buildCategory("owner only", (msg, ic, t) -> msg.author().equals(owner));
         if (args.length >= 8) {
             cl.setWebhook(new WebhookClient(catnip, args[6], args[7]));
-        } else cl.setWebhook(new WebhookClient(catnip, "503150567527284736", "6qIOWd3frKSkcjI9brPTBUutG4KIhaNPFhzD9s1BvYbhLWCzYZEdIFILhMT3lxigGiJC")) /*effectively no-op*/;
+        } else
+            cl.setWebhook(new WebhookClient(catnip, "503150567527284736", "6qIOWd3frKSkcjI9brPTBUutG4KIhaNPFhzD9s1BvYbhLWCzYZEdIFILhMT3lxigGiJC")) /*effectively no-op*/;
         distribute(cl, DumpCommand::new, HelpCommand::new, CatnipInfoCommand::new, PingCommand::new, GetInviteCommand::new, ProcessCommand::new, t -> new EvaluatorCommand(t, EvaluatorCommand.SEM.getEngineByName("kotlin")));
         catnip.presence(Presence.OnlineStatus.DND, "Command System Debugging", Presence.ActivityType.PLAYING, null);
         catnip.on(DiscordEvent.MESSAGE_CREATE, cl::onMessageReceived);

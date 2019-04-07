@@ -60,7 +60,9 @@ public class ProcessCommand extends AbstractSubSystemCommand {
         @Override
         public void run(Message msg, String arguments) {
             if (arguments.isEmpty()) throw new CommandException("Command must not be empty");
-            var a = getOrThrow(() -> Long.parseUnsignedLong(arguments.substring(0, indexOf(arguments, Character::isSpaceChar))), e -> { throw new CommandException("Not a number"); });
+            var a = getOrThrow(() -> Long.parseUnsignedLong(arguments.substring(0, indexOf(arguments, Character::isSpaceChar))), e -> {
+                throw new CommandException("Not a number");
+            });
             var pi = Executors.INSTANCE.INSTANCES.get(a);
             if (pi == null) throw new CommandException("Process Instance not found.");
             pi.PROCESS.destroy();
@@ -195,10 +197,11 @@ public class ProcessCommand extends AbstractSubSystemCommand {
                 sb.append(i.PID).append(" -> ").append(info.commandLine().orElse("Unknown?"));
             }
             var mc = msg.channel();
-            if(sb.length() < 1990) mc.sendMessage(sb.insert(0, "```css\n").append("```").toString());
-            else if(MiscellaneousUtils.selfHasPermissions(msg, Permission.ATTACH_FILES)) {
+            if (sb.length() < 1990) mc.sendMessage(sb.insert(0, "```css\n").append("```").toString());
+            else if (MiscellaneousUtils.selfHasPermissions(msg, Permission.ATTACH_FILES)) {
                 mc.sendMessage(MiscellaneousUtils.attachString(msg.channel(), "Processes.css", sb.toString()));
-            } else msg.author().createDM().thenAcceptAsync(dm -> dm.sendMessage((MiscellaneousUtils.attachString(msg.channel(), "Processes.css", sb.toString()))));
+            } else
+                msg.author().createDM().thenAcceptAsync(dm -> dm.sendMessage((MiscellaneousUtils.attachString(msg.channel(), "Processes.css", sb.toString()))));
         }
 
         @Override

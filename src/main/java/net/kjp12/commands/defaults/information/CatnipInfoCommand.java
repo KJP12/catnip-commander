@@ -11,37 +11,38 @@ public class CatnipInfoCommand extends AbstractCommand {
     }
 
     @Override
-    public void run(Message msg, String args){
+    public void run(Message msg, String args) {
         var channel = msg.channel();
         var sm = msg.catnip().shardManager();
         var ids = sm.shardIds();
         var failing = new java.util.HashSet<Integer>(ids.size());
 
-        for(int id:ids) if(sm.isConnected(id).toCompletableFuture().join() != true) failing.add(id);
+        for (int id : ids) if (sm.isConnected(id).toCompletableFuture().join() != true) failing.add(id);
         int total = ids.size(), failed = failing.size();
-        if(MiscellaneousUtils.canEmbed(msg)){
+        if (MiscellaneousUtils.canEmbed(msg)) {
             var eb = MiscellaneousUtils.genBaseEmbed(0x46AF2C, msg.author(), msg.guild(), "Catnip Info", null, msg.creationTime());
             eb.description("Total = " + total + " | Failing = " + failed + "\nThat's " + Math.round((double) failed / (double) total * 100) + "% failure!");
-            if(!failing.isEmpty()) eb.field("Failing Shards", failing.toString(), false);
+            if (!failing.isEmpty()) eb.field("Failing Shards", failing.toString(), false);
             channel.sendMessage(eb.build());
         } else {
             var str = "**__Catnip Info__**\nTotal = " + total + " | Failing = " + failed + "\nThat's " + Math.round((double) failed / (double) total * 100) + "% failure!";
-            if(!failing.isEmpty()) str += "\n\n**__Failing Shards__**\n```json\n" + failing.toString() + "```";
+            if (!failing.isEmpty()) str += "\n\n**__Failing Shards__**\n```json\n" + failing.toString() + "```";
             channel.sendMessage(str);
         }
     }
 
-    @Override public String[] toAliases() {
+    @Override
+    public String[] toAliases() {
         return new String[]{"shardinfo"};
     }
 
     @Override
-    public String toDescription(Message msg){
+    public String toDescription(Message msg) {
         return "Gets the information of every shard attached.";
     }
 
     @Override
-    public String[] toCategories(){
+    public String[] toCategories() {
         return new String[]{"information"};
     }
 }

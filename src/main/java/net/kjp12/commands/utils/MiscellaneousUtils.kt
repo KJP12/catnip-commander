@@ -34,7 +34,7 @@ const val MASK_32 = 0xFFFFFFFFL
 const val MASK_16 = 0xFFFFL
 
 fun genBaseEmbed(colour: Int, author: Any?, g: Guild?, title: String?, footer: Any?, time: TemporalAccessor): EmbedBuilder {
-    val eb = EmbedBuilder().color(g?.roles()?.random?.color() ?: if(author is Member) author.color()?.rgb ?: colour else colour).timestamp(time)
+    val eb = EmbedBuilder().color(g?.roles()?.random?.color() ?: if (author is Member) author.color()?.rgb ?: colour else colour).timestamp(time)
     when (author) {
         is User -> eb.author("${author.username()}#${author.discriminator()} ${author.id()}", author.avatar, author.avatar)
         is Member -> {
@@ -106,7 +106,7 @@ fun MessageOptions.attachString(name: String, content: String) = addFile(name, c
 fun ICommandListener.getStackedPrefix(guild: Guild?): String {
     val sb = StringBuilder()
     var icl = this
-    while(icl is ICommand) {
+    while (icl is ICommand) {
         sb.insert(0, ' ').insert(0, icl.firstAliases)
         icl = icl.listener
     }
@@ -121,10 +121,24 @@ fun Message.selfHasPermissions(first: Permission, vararg rest: Permission) = sel
 
 fun Message.selfHasPermissions(permissions: EnumSet<Permission>) = guild()?.selfMember()?.hasPermissions(channel().asGuildChannel(), permissions) ?: !guildRequiredPermissions.any { permissions.contains(it) }
 
-fun <T> Callable<T>.getOrDefault(def: Supplier<T>) = try {call()} catch(e: Exception) {def.get()}
-fun <T> Callable<T>.getOrDefault(t: T) = try {call()} catch (e: Exception) {t}
+fun <T> Callable<T>.getOrDefault(def: Supplier<T>) = try {
+    call()
+} catch (e: Exception) {
+    def.get()
+}
+
+fun <T> Callable<T>.getOrDefault(t: T) = try {
+    call()
+} catch (e: Exception) {
+    t
+}
+
 //You know what you're throwing.
-fun <O> Callable<O>.getOrThrow(t: DurianConsumer<Exception>) = try {call()} catch(e: Exception) { t.accept(e) }
+fun <O> Callable<O>.getOrThrow(t: DurianConsumer<Exception>) = try {
+    call()
+} catch (e: Exception) {
+    t.accept(e)
+}
 
 //<editor-fold desc="fields">
 val User.avatar: String
@@ -139,6 +153,6 @@ val now: OffsetDateTime
 val <T> CacheView<T>.random: T
     get() = values().random()
 
-val guildRequiredPermissions:EnumSet<Permission>
+val guildRequiredPermissions: EnumSet<Permission>
     get() = EnumSet.of(CREATE_INSTANT_INVITE, KICK_MEMBERS, BAN_MEMBERS, ADMINISTRATOR, MANAGE_CHANNELS, MANAGE_GUILD, VIEW_AUDIT_LOG, MANAGE_MESSAGES, MUTE_MEMBERS, DEAFEN_MEMBERS, MOVE_MEMBERS, PRIORITY_SPEAKER, CHANGE_NICKNAME, MANAGE_NICKNAME, MANAGE_ROLES, MANAGE_WEBHOOKS, MANAGE_EMOJI)
 //</editor-fold>

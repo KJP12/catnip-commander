@@ -9,6 +9,12 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 
 public interface IUserPermissionCommand extends IBotPermissionCommand {
+    static String permStr(final Iterable<Permission> set) {
+        final var sb = new StringBuilder();
+        for (final var p : set) sb.append(p).append('\n');
+        return sb.toString();
+    }
+
     /**
      * @return A possibly immutable set of required Runtime {@link Permission}s.
      */
@@ -22,12 +28,12 @@ public interface IUserPermissionCommand extends IBotPermissionCommand {
     }
 
     @Override
-    default EnumSet<Permission> requiredRuntimeBotPermissions(){
+    default EnumSet<Permission> requiredRuntimeBotPermissions() {
         return requiredRuntimePermissions();
     }
 
     @Override
-    default EnumSet<Permission> requiredViewingBotPermissions(){
+    default EnumSet<Permission> requiredViewingBotPermissions() {
         return requiredViewingPermissions();
     }
 
@@ -61,11 +67,5 @@ public interface IUserPermissionCommand extends IBotPermissionCommand {
             return false;
         }
         return true;
-    }
-
-    static String permStr(final Iterable<Permission> set) {
-        final var sb = new StringBuilder();
-        for(final var p:set) sb.append(p).append('\n');
-        return sb.toString();
     }
 }

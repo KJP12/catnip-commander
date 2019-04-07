@@ -72,7 +72,7 @@ public abstract class AbstractSubSystemCommand extends AbstractCommand implement
 
     /**
      * We will delegate to {@link #LISTENER} here.
-     * */
+     */
     @Override
     public void handleThrowable(Throwable throwable, @Nullable Message message) {
         LISTENER.handleThrowable(throwable, message);
@@ -80,7 +80,7 @@ public abstract class AbstractSubSystemCommand extends AbstractCommand implement
 
     /**
      * We will delegate to {@link #LISTENER} here.
-     * */
+     */
     @Override
     public void handleCmdException(CommandException e, @Nullable Message message) {
         LISTENER.handleCmdException(e, message);

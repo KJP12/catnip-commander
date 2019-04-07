@@ -17,11 +17,11 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 public final class Executors extends ThreadGroup {
+    public static final Executors INSTANCE = new Executors();
     private static final Runtime RT = Runtime.getRuntime();
     private static final File CURRENT_DIR = new File(".");
     private static final Logger LOGGER = LoggerFactory.getLogger(Executors.class);
     private static final AtomicLong INCREMENT = new AtomicLong(0);
-    public static final Executors INSTANCE = new Executors();
     private final LongObjectHashMap<ProcessInstance> INSTANCES_ = new LongObjectHashMap<>();
     public final LongObjectMap<ProcessInstance> INSTANCES = LongCollections.unmodifiableMap(INSTANCES_);
 
@@ -71,6 +71,10 @@ public final class Executors extends ThreadGroup {
     @FunctionalInterface
     public interface DARFunction {
         void run(char[] buf, boolean closed, int ri, int wi, int m);
+    }
+
+    public interface DurianBiConsumer<A, B> {
+        void accept(A a, B b) throws Throwable;
     }
 
     /**
@@ -268,11 +272,11 @@ public final class Executors extends ThreadGroup {
     public class ProcessInstance {
         private static final int SIZE = 4 << 20;
         public final long PID, ns = System.nanoTime();
-        private final ProcessHandle.Info INFO;
         public final Process PROCESS;
-        private volatile long nsd = 0;
+        private final ProcessHandle.Info INFO;
         private final DynamicArrayReader OUT_S = new DynamicArrayReader(SIZE), ERR_S = new DynamicArrayReader(SIZE);
         private final Thread DEATH, ERR_T, OUT_T;
+        private volatile long nsd = 0;
 
         private ProcessInstance(String process, File dir, Consumer<Throwable> errors, DurianBiConsumer<ProcessInstance, Integer>[] listeners) throws IOException {
             if (process.isEmpty()) throw new IllegalArgumentException("process blank");
@@ -327,13 +331,13 @@ public final class Executors extends ThreadGroup {
                 };
             } finally {
                 INFO = $i;
-                if($pid == 0) {
+                if ($pid == 0) {
                     $pid = INCREMENT.get();
                     while (INSTANCES_.containsKey($pid)) $pid++;
                     INCREMENT.set($pid + 1L);
                 }
                 PID = $pid;
-                synchronized (INSTANCES_){
+                synchronized (INSTANCES_) {
                     INSTANCES_.put(PID, this);
                 }
             }
@@ -394,9 +398,5 @@ public final class Executors extends ThreadGroup {
         public ProcessHandle.Info getInfo() {
             return INFO;
         }
-    }
-
-    public interface DurianBiConsumer<A, B> {
-        void accept(A a, B b) throws Throwable;
     }
 }

@@ -10,8 +10,14 @@ import java.util.EnumSet;
 
 /**
  * An interface that allows you to check permissions for the bot-side of commands. Although, most checks can be done internal.
- * */
+ */
 public interface IBotPermissionCommand extends IViewable {
+    static String permStr(final Iterable<Permission> set) {
+        final var sb = new StringBuilder();
+        for (final var p : set) sb.append(p).append('\n');
+        return sb.toString();
+    }
+
     /**
      * @return A possibly immutable set of required Runtime {@link Permission}s.
      */
@@ -54,11 +60,5 @@ public interface IBotPermissionCommand extends IViewable {
             return false;
         }
         return true;
-    }
-
-    static String permStr(final Iterable<Permission> set) {
-        final var sb = new StringBuilder();
-        for(final var p:set) sb.append(p).append('\n');
-        return sb.toString();
     }
 }

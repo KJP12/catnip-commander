@@ -6,8 +6,10 @@ import net.kjp12.commands.abstracts.AbstractCommandListener;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Function;
 
-/**This is just a convenience implementation of {@link net.kjp12.commands.abstracts.ICommandListener}.
- * If you need greater control, consider using {@link AbstractCommandListener} or {@link net.kjp12.commands.abstracts.ICommandListener}.*/
+/**
+ * This is just a convenience implementation of {@link net.kjp12.commands.abstracts.ICommandListener}.
+ * If you need greater control, consider using {@link AbstractCommandListener} or {@link net.kjp12.commands.abstracts.ICommandListener}.
+ */
 public class CommandListener extends AbstractCommandListener implements Thread.UncaughtExceptionHandler {
     public final Function<Guild, String> GET_PREFIX;
 
@@ -21,12 +23,13 @@ public class CommandListener extends AbstractCommandListener implements Thread.U
         GET_PREFIX = getPrefix;
         init();
     }
+
     /**
      * One command listener per shard builder or Catnip inst.
      *
-     * @param getPrefix Prefix per guild.
+     * @param getPrefix   Prefix per guild.
      * @param commandPool Possibly-null Command Pool for use with command execution
-     * */
+     */
     public CommandListener(Function<Guild, String> getPrefix, ExecutorService commandPool) {
         super(commandPool);
         GET_PREFIX = getPrefix;

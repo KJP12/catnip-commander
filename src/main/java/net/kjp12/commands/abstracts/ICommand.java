@@ -45,7 +45,7 @@ public interface ICommand {
      * @param msg  Context as {@link Message}.
      * @param args Arguments as a singular {@link String}.
      * @throws CommandException When command execution goes wrong and needs to exit quickly. This is a softer runtime exception unless there is another {@link Throwable} wrapped in it.
-     * @throws Throwable When anything else goes wrong. Is a harsh exception and will return an error. Will be wrapped in a {@link CommandException} by {@link #execute(Message, String)} unless said method was overridden
+     * @throws Throwable        When anything else goes wrong. Is a harsh exception and will return an error. Will be wrapped in a {@link CommandException} by {@link #execute(Message, String)} unless said method was overridden
      */
     void run(Message msg, String args) throws Throwable;
 
@@ -95,7 +95,7 @@ public interface ICommand {
 
     /**
      * @return List of {@link net.kjp12.commands.CategorySystem.Category}
-     * */
+     */
     List<CategorySystem.Category> getCategoryList();
 
     /**

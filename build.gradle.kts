@@ -14,7 +14,7 @@ version = ver
 
 repositories {
     mavenCentral()
-    maven { url = URI("https://jitpack.io")}
+    maven { url = URI("https://jitpack.io") }
 }
 
 dependencies {
@@ -64,9 +64,9 @@ tasks {
     val jar = getByName<Jar>("jar") {
         manifest.attributes["Implementation-Version"] = version
     }
-    val sourcesJar = register<Jar>("sourcesJar"){
+    val sourcesJar = register<Jar>("sourcesJar") {
         classifier = "sources"
-        from ("src/main/java") {exclude("**/CommanderInfo.java")}
+        from("src/main/java") { exclude("**/CommanderInfo.java") }
         from(sourcesForRelease.destinationDir)
         dependsOn(sourcesForRelease)
     }.get()
@@ -79,9 +79,9 @@ tasks {
 
 fun env(e: String): String? {
     val s = System.getenv(e)
-    return if(s.isNullOrBlank()) {
+    return if (s.isNullOrBlank()) {
         val t = System.getProperty(e)
-        if(t.isNullOrBlank()) null else t
+        if (t.isNullOrBlank()) null else t
     } else s
 }
 

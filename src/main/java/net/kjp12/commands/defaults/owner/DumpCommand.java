@@ -15,7 +15,8 @@ public class DumpCommand extends AbstractCommand {
     public void run(Message msg, String args) throws Throwable {
         var s = args.split(" ", 2);
         var ic = LISTENER.getCommand(s[0]);
-        if(ic == null || ic.equals(this)) throw new CommandException("Cannot dump the command " + (ic == null ? "null pointer" : ic.getFirstAliases()));
+        if (ic == null || ic.equals(this))
+            throw new CommandException("Cannot dump the command " + (ic == null ? "null pointer" : ic.getFirstAliases()));
         ic.execute(msg, s.length > 1 ? s[1] : "", t -> MiscellaneousUtils.attemptSend(LISTENER, t, msg));
     }
 

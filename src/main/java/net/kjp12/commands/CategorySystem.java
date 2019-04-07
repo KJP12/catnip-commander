@@ -17,7 +17,6 @@ import static org.apache.commons.lang3.Validate.notNull;
 
 public final class CategorySystem {
     private static final Logger LOGGER = LoggerFactory.getLogger(CategorySystem.class);
-    private final List<Category> CATEGORIES = new LinkedList<>();
     /**
      * Hidden parent category of every command.
      * All commands will inherit this category and its permission checks.
@@ -31,6 +30,7 @@ public final class CategorySystem {
         if (t) throw new CommandException("This command is deprecated!");
         return false;
     }, false);
+    private final List<Category> CATEGORIES = new LinkedList<>();
 
     public CategorySystem() {
         SYSTEM_CATEGORY = new Category("system", null, true);
@@ -52,11 +52,10 @@ public final class CategorySystem {
      * @param cat   Name of a {@link Category} as {@link String}; If it exists, will use it else create a new one.
      * @param check Permission checks in a form of a {@link Function3}.
      *              Respect the input arguments. Arguments...
-     *                  {@link Message} The message that contains the command
-     *                  {@link ICommand} The command the message wants to trigger
-     *                  {@link Boolean} if true should throw an exception else return false on bad permissions.
+     *              {@link Message} The message that contains the command
+     *              {@link ICommand} The command the message wants to trigger
+     *              {@link Boolean} if true should throw an exception else return false on bad permissions.
      *              The returned {@link Boolean} is if the command is allowed to execute or not.
-     *
      * @return The built {@link Category} object
      */
     public final Category buildCategory(String cat, Function3<Message, ICommand, Boolean, Boolean> check) {
@@ -67,13 +66,13 @@ public final class CategorySystem {
         CATEGORIES.forEach(c -> c.removeCommand(command));
     }
 
-    public final List<Category> getCategories(){
+    public final List<Category> getCategories() {
         return Collections.unmodifiableList(CATEGORIES);
     }
 
     /**
      * The main Category class. Inherits TriFunction for delegation purposes, mainly {@link #SYSTEM_CATEGORY}.
-     *
+     * <p>
      * This Category class is an independent instance from CategorySystem to avoid a permanently left-behind and unneeded CategorySystem instance.
      * As such, it is up to {@link #buildCategory(String)} to ensure it was properly saved within {@link CategorySystem#CATEGORIES}.
      */
@@ -135,17 +134,6 @@ public final class CategorySystem {
         }
 
         /**
-         * Sets if this category should be hidden from public view like {@link net.kjp12.commands.defaults.information.HelpCommand}.
-         *
-         * @param hid Hide if true.
-         * @return Self for convenience.
-         */
-        public final Category setHidden(boolean hid){
-            LOGGER.debug("[" + NAME + "] " + ((isHidden = hid) ? "is now" : "no longer") + " hidden");
-            return this;
-        }
-
-        /**
          * Internal method for use with {@link ICommand} object initialization.
          * This can be manually forced but the command itself won't register that it had gotten a new category instance to check unless told otherwise.
          * The implementation of the command may call this method on its own like in the case of {@link net.kjp12.commands.abstracts.AbstractCommand(net.kjp12.commands.abstracts.ICommandListener)}
@@ -191,7 +179,7 @@ public final class CategorySystem {
             return h * 31 + permissionCheck.hashCode();
         }
 
-        public final String toString(){
+        public final String toString() {
             return NAME;
         }
 
@@ -199,15 +187,26 @@ public final class CategorySystem {
             return permissionCheck == null ? true : permissionCheck.invoke(msg, ac, t);
         }
 
-        public final boolean isHidden(){
+        public final boolean isHidden() {
             return isHidden;
+        }
+
+        /**
+         * Sets if this category should be hidden from public view like {@link net.kjp12.commands.defaults.information.HelpCommand}.
+         *
+         * @param hid Hide if true.
+         * @return Self for convenience.
+         */
+        public final Category setHidden(boolean hid) {
+            LOGGER.debug("[" + NAME + "] " + ((isHidden = hid) ? "is now" : "no longer") + " hidden");
+            return this;
         }
 
         /**
          * Delegating method; passes straight to {@link #permissionCheck} in case this is a parent of another category.
          *
          * @return if {@link #permissionCheck} is null, true else whatever {@link Function3#invoke(Object, Object, Object)} returns.
-         * */
+         */
         @Override
         public final Boolean invoke(Message message, ICommand iCommand, Boolean throwing) {
             return permissionCheck == null ? true : permissionCheck.invoke(message, iCommand, throwing);

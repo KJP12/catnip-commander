@@ -30,7 +30,7 @@ public interface ICommandListener {
     /**
      * @inheritDoc {@link ICommandListener#getCategorySystem()}
      * @deprecated Legacy method; use {@link ICommandListener#getCategorySystem()}
-     * */
+     */
     @Deprecated
     default CategorySystem getCategory() {
         return getCategorySystem();
@@ -39,7 +39,7 @@ public interface ICommandListener {
     /**
      * @param guild Guild for the prefix
      * @return Prefix as String
-     * */
+     */
     String getPrefix(Guild guild);
 
     /**
@@ -101,7 +101,7 @@ public interface ICommandListener {
 
     /**
      * Hack-patch error handler method for the exceptionally method of Futures. Guaranteed to return null.
-     * */
+     */
     default <T> T handleThrowableV(Throwable cause, @Nullable Message msg) {
         handleThrowable(cause, msg);
         return null;
@@ -125,7 +125,10 @@ public interface ICommandListener {
                 var author = msg.author();
                 s.sendMessage(MiscellaneousUtils.genBaseEmbed(0xaa1200, author, msg.guild(), "Something has failed", "UID - " + uid, msg.creationTime())
                         .description("The error has been sent to the owner.")
-                        .field("Cause", ce.toString(), false).build()).exceptionally(e -> {handleThrowable(e, null); return null;});
+                        .field("Cause", ce.toString(), false).build()).exceptionally(e -> {
+                    handleThrowable(e, null);
+                    return null;
+                });
                 if (message != null) s.sendMessage(message);
             }, t -> {
                 attemptSend(this, t, msg);

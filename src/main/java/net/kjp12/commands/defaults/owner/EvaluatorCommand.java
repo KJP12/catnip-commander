@@ -18,17 +18,17 @@ public class EvaluatorCommand extends AbstractCommand {
     public static final ScriptEngineManager SEM = new ScriptEngineManager();
     private final ScriptEngine engine;
 
-    public EvaluatorCommand(ICommandListener icl, ScriptEngine se){
+    public EvaluatorCommand(ICommandListener icl, ScriptEngine se) {
         super(icl);
         hidden = true;
         engine = Objects.requireNonNullElseGet(se, () -> SEM.getEngineByName("nashorn"));
     }
 
-    public EvaluatorCommand(ICommandListener icl, String se){
+    public EvaluatorCommand(ICommandListener icl, String se) {
         this(icl, SEM.getEngineByName(se));
     }
 
-    public EvaluatorCommand(ICommandListener icl){
+    public EvaluatorCommand(ICommandListener icl) {
         this(icl, "nashorn");
     }
 
@@ -54,13 +54,13 @@ public class EvaluatorCommand extends AbstractCommand {
 
         var member = guild == null ? null : guild.selfMember();
         var self = catnip.selfUser();
-        if(s.length() < /*Since there is no variable to reference...*/ 2048 - 11 && (member == null || member.hasPermissions(channel.asGuildChannel(), Permission.EMBED_LINKS, Permission.SEND_MESSAGES))) {
-            channel.sendMessage(MiscellaneousUtils.genBaseEmbed(0x00FF00, author, guild, "Evaluation", self, MiscellaneousUtils.now()).description("```java\n"+s+"```").build());
+        if (s.length() < /*Since there is no variable to reference...*/ 2048 - 11 && (member == null || member.hasPermissions(channel.asGuildChannel(), Permission.EMBED_LINKS, Permission.SEND_MESSAGES))) {
+            channel.sendMessage(MiscellaneousUtils.genBaseEmbed(0x00FF00, author, guild, "Evaluation", self, MiscellaneousUtils.now()).description("```java\n" + s + "```").build());
         } else if (s.length() < 2000 - 11 && (member != null && member.hasPermissions(channel.asGuildChannel(), Permission.SEND_MESSAGES))) {
-            channel.sendMessage("```java\n"+s+"```");
+            channel.sendMessage("```java\n" + s + "```");
         } else {
             var i = new MessageOptions().content("Evaluation Complete! See attached file.").addFile("Eval-" + System.currentTimeMillis() + ".log", s.getBytes(StandardCharsets.UTF_8));
-            if(member != null) catnip.cache().dmChannelAsync(author.idAsLong())
+            if (member != null) catnip.cache().dmChannelAsync(author.idAsLong())
                     .thenAcceptAsync(dm -> dm.sendMessage(i))
                     .exceptionally(e -> {
                         LISTENER.handleThrowable(e, msg);
@@ -69,10 +69,11 @@ public class EvaluatorCommand extends AbstractCommand {
                             System.out.println("Evaluator input:\n" + args + "\n\nEvaluator output:\n" + s + "\n");
                             return null;
                         });
-                        if(member == null || member.hasPermissions(channel.asGuildChannel(), Permission.ADD_REACTIONS)) msg.react("📬");
+                        if (member == null || member.hasPermissions(channel.asGuildChannel(), Permission.ADD_REACTIONS))
+                            msg.react("📬");
                         return null;
                     });
-            else if(member != null && member.hasPermissions(channel.asGuildChannel(), Permission.SEND_MESSAGES, Permission.ATTACH_FILES)) {
+            else if (member != null && member.hasPermissions(channel.asGuildChannel(), Permission.SEND_MESSAGES, Permission.ATTACH_FILES)) {
                 channel.sendMessage(i);
             } else {
                 LISTENER.getWebhook().send(i).exceptionally(e -> {
@@ -80,7 +81,8 @@ public class EvaluatorCommand extends AbstractCommand {
                     System.out.println("Evaluator input:\n" + args + "\n\nEvaluator output:\n" + s + "\n");
                     return null;
                 });
-                if(member == null || member.hasPermissions(channel.asGuildChannel(), Permission.ADD_REACTIONS)) msg.react("📬");
+                if (member == null || member.hasPermissions(channel.asGuildChannel(), Permission.ADD_REACTIONS))
+                    msg.react("📬");
             }
         }
     }

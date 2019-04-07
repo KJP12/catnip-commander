@@ -22,8 +22,8 @@ public interface IViewable extends ICommand {
      * Method to call when executing a command. It is considered safer to call this as it can properly route the message as needed.
      * This method also checks to see if args is empty or null so it can see if it should run {@link #view(Message)} or {@link #run(Message, String)}.
      *
-     * @param msg  Context as {@link Message}. Used for permission checks and whatever {@link #run(Message, String)} or {@link #view(Message)} needs.
-     * @param args Arguments as a singular {@link String}.
+     * @param msg          Context as {@link Message}. Used for permission checks and whatever {@link #run(Message, String)} or {@link #view(Message)} needs.
+     * @param args         Arguments as a singular {@link String}.
      * @param errorHandler Handles the errors that get thrown within the command.
      */
     @Override

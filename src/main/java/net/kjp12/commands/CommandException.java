@@ -6,8 +6,8 @@ import com.mewna.catnip.entity.message.MessageOptions;
 
 /**
  * @deprecated Command handlers may make it impossible to handle a command exception; recommenced replacing with a standard message.
- *      yes, I know it's deprecated on creation; legacy system compatibility.
- * */
+ * yes, I know it's deprecated on creation; legacy system compatibility.
+ */
 @Deprecated(forRemoval = true)
 public class CommandException extends RuntimeException {
     private MessageOptions message;
@@ -23,13 +23,22 @@ public class CommandException extends RuntimeException {
         super(message.content());
         this.message = new MessageOptions(message);
     }
-    public CommandException(String message) { super(message); }
+
+    public CommandException(String message) {
+        super(message);
+    }
 
     public CommandException(String msg, Object... args) {
         super(String.format(msg, args));
     }
-    public CommandException(String message, Throwable cause) { super(message, cause); }
-    public CommandException(Throwable cause) { super(cause); }
+
+    public CommandException(String message, Throwable cause) {
+        super(message, cause);
+    }
+
+    public CommandException(Throwable cause) {
+        super(cause);
+    }
 
     public CommandException(Throwable cause, Message message) {
         this(cause);
