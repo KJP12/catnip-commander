@@ -21,7 +21,6 @@ import net.kjp12.commands.abstracts.ICommandListener
 import org.slf4j.LoggerFactory
 import java.io.PrintWriter
 import java.io.StringWriter
-import java.lang.StringBuilder
 import java.time.Clock
 import java.time.OffsetDateTime
 import java.time.temporal.TemporalAccessor
@@ -34,7 +33,10 @@ const val MASK_32 = 0xFFFFFFFFL
 const val MASK_16 = 0xFFFFL
 
 fun genBaseEmbed(colour: Int, author: Any?, g: Guild?, title: String?, footer: Any?, time: TemporalAccessor): EmbedBuilder {
-    val eb = EmbedBuilder().color(g?.roles()?.random?.color() ?: if (author is Member) author.color()?.rgb ?: colour else colour).timestamp(time)
+    val eb = EmbedBuilder().color(
+        g?.selfMember()?.color()?.rgb ?: if (author is Member) author.color()?.rgb ?: g?.roles()?.random?.color()
+        ?: colour else colour
+    ).timestamp(time)
     when (author) {
         is User -> eb.author("${author.username()}#${author.discriminator()} ${author.id()}", author.avatar, author.avatar)
         is Member -> {
@@ -138,6 +140,7 @@ fun <O> Callable<O>.getOrThrow(t: DurianConsumer<Exception>) = try {
     call()
 } catch (e: Exception) {
     t.accept(e)
+    throw e
 }
 
 //<editor-fold desc="fields">

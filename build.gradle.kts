@@ -6,7 +6,7 @@ plugins {
     `java-library`
     maven
     `maven-publish`
-    kotlin("jvm") version "1.3.21"
+    kotlin("jvm") version "1.3.30"
 }
 
 val ver = Version("1", "0", "0", env("BUILD_NUMBER") ?: env("GIT_COMMIT")?.substring(0..6) ?: "DEV")
@@ -20,7 +20,7 @@ repositories {
 }
 
 dependencies {
-    api("com.github.KJP12:catnip:7c2c2ea")
+    api("com.github.mewna:catnip:12dba23")
     api(kotlin("stdlib-jdk8"))
     testImplementation("ch.qos.logback:logback-classic:1.2.3")
     testCompile(kotlin("script-runtime"))
@@ -28,6 +28,8 @@ dependencies {
     testCompile(kotlin("reflect"))
     testCompile(kotlin("compiler-embeddable"))
     testCompile("junit", "junit", "4.12")
+    testCompile("org.junit.jupiter", "junit-jupiter-api", "5.4.1")
+    testCompile("org.junit.jupiter", "junit-jupiter-engine", "5.4.1")
 }
 
 configure<JavaPluginConvention> {
@@ -74,6 +76,9 @@ tasks {
     }.get()
     "build" {
         dependsOn(jar, sourcesJar)
+    }
+    withType<Test> {
+        useJUnitPlatform()
     }
 }
 

@@ -13,16 +13,17 @@ fun Guild.stringify(id: Boolean = true) = if (id) "${name()} ${idAsLong()}" else
 fun User.stringify(id: Boolean = true) = if (id) "${discordTag()} ${idAsLong()}" else discordTag()
 
 @JvmOverloads
-fun String.splitByPredicate(t: IntPredicate, start: Int = 0, limit: Int) = StringUtilsJava.splitByPredicate(t, start, limit, this)
+fun String.splitByPredicate(t: IntPredicate, start: Int = 0, limit: Int = -1): Array<String> =
+    StringUtilsJava.splitByPredicate(t, start, limit, this)
 
 @JvmOverloads
 fun String.indexOf(t: IntPredicate, start: Int = 0): Int {
     var i = start
     while (i < length && !t.test(this[i].toInt())) i++
-    return i
+    return if (i == length) -1 else i
 }
 
-fun String.countInstances(t: (Char) -> Boolean, start: Int): Int {
+fun String.countInstances(t: (Char) -> Boolean, start: Int = 0): Int {
     if (isEmpty() || start >= length) return 0
     var c = 0
     var it = false

@@ -1,11 +1,11 @@
 package net.kjp12.commands.utils;
 
-import java.util.Arrays;
 import java.util.function.IntPredicate;
 
 import static net.kjp12.commands.utils.StringUtils.countInstances;
 
 class StringUtilsJava {
+    @SuppressWarnings("StatementWithEmptyBody") //For-loops are supposed to be empty.
     static String[] splitByPredicate(IntPredicate t, int start, int limit, String toSplit) {
         while (start < toSplit.length() && t.test(toSplit.charAt(start)))
             start++;
