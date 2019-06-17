@@ -3,7 +3,6 @@ package net.kjp12.commands.abstracts;
 import com.mewna.catnip.entity.message.Message;
 import com.mewna.catnip.entity.message.MessageOptions;
 import net.kjp12.commands.CategorySystem;
-import net.kjp12.commands.CommandException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,9 +20,8 @@ public interface ICommand {
      * Checks the inherited permissions of all the categories via {@link CategorySystem.Category#checkPermission(Message, ICommand, boolean)}.
      *
      * @param msg Context as {@link Message}. Used for getting Member or User.
-     * @param t   If it should throw an exception or return false on failure.
+     * @param t   If it should send a message on failure.
      * @return If the permission check passed.
-     * @throws CommandException Permissions check failed and parameter t is false, and is able to throw an exception.
      */
     boolean checkInheritedPermissions(Message msg, boolean t);
 
@@ -31,9 +29,8 @@ public interface ICommand {
      * Checks the permissions per-command. Maybe used with a permission array like in {@link IUserPermissionCommand#checkRuntimePermission(Message, boolean)}
      *
      * @param msg Context as {@link Message}. Used for getting Member or User.
-     * @param t   If it should throw an exception or return false on failure.
+     * @param t   If it should a message on failure.
      * @return If the permission check passed. Defaults to true.
-     * @throws CommandException Permissions check failed and parameter t is false, and is able to throw an exception.
      */
     default boolean checkRuntimePermission(Message msg, boolean t) {
         return true;
@@ -44,8 +41,7 @@ public interface ICommand {
      *
      * @param msg  Context as {@link Message}.
      * @param args Arguments as a singular {@link String}.
-     * @throws CommandException When command execution goes wrong and needs to exit quickly. This is a softer runtime exception unless there is another {@link Throwable} wrapped in it.
-     * @throws Throwable        When anything else goes wrong. Is a harsh exception and will return an error. Will be wrapped in a {@link CommandException} by {@link #execute(Message, String)} unless said method was overridden
+     * @throws Throwable When anything goes wrong.
      */
     void run(Message msg, String args) throws Throwable;
 
@@ -75,11 +71,11 @@ public interface ICommand {
     }
 
     /**
-     * Makes a message to send to the current channel according to {@link Message#getChannel()}.
+     * Makes a message to send to the current channel according to {@link Message#channel()}.
      * Should be overridden by {@link AbstractCommand#toMessage(Message)} by default.
      *
-     * @param msg Context as {@link Message}. Used for {@link Message#getChannel()} and whatever {@link #toDescription(Message)} needs.
-     * @return {@link MessageAction} which maybe used right away with {@link MessageAction#queue()} like in the case of {@link net.kjp12.commands.defaults.information.HelpCommand#run(Message, String)}.
+     * @param msg Context as {@link Message}. Used for {@link Message#channel()} and whatever {@link #toDescription(Message)} needs.
+     * @return {@link MessageOptions} which maybe used right away with {@link com.mewna.catnip.entity.channel.MessageChannel#sendMessage(MessageOptions)} like in the case of {@link net.kjp12.commands.defaults.information.HelpCommand#run(Message, String)}.
      */
     MessageOptions toMessage(Message msg);
 

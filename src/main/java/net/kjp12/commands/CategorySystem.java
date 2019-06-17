@@ -27,7 +27,7 @@ public final class CategorySystem {
      * All deprecated commands will inherit this category and fail, unless otherwise set.
      */
     DEPRECATED_CATEGORY = new Category("deprecated", (msg, ac, t) -> {
-        if (t) throw new CommandException("This command is deprecated!");
+        if (t) throw new RuntimeException("Unexpected usage of deprecated command!");
         return false;
     }, false);
     private final List<Category> CATEGORIES = new LinkedList<>();

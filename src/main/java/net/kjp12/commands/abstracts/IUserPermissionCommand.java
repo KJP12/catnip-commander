@@ -3,7 +3,6 @@ package net.kjp12.commands.abstracts;//Created on 1/17/18.
 import com.mewna.catnip.entity.builder.EmbedBuilder;
 import com.mewna.catnip.entity.message.Message;
 import com.mewna.catnip.entity.util.Permission;
-import net.kjp12.commands.CommandException;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -48,13 +47,12 @@ public interface IUserPermissionCommand extends IBotPermissionCommand {
     }
 
     default boolean checkPermissions(Message msg, boolean t, EnumSet<Permission> arr) {
-        if (!msg.channel().isGuild()) {
-            if (t) {
-                throw new CommandException("You must be in a guild to use this command!");
-            }
+        var c = msg.channel();
+        if (!c.isGuild()) {
+            if (t) c.sendMessage("You must be in a guild to use this command!");
             return false;
         }
-        var tc = msg.channel().asGuildChannel();
+        var tc = c.asGuildChannel();
         var m = msg.member();
         if (!m.hasPermissions(tc, arr)) {
             if (t) {
@@ -62,7 +60,7 @@ public interface IUserPermissionCommand extends IBotPermissionCommand {
                 var eb = new EmbedBuilder().title("You're missing permissions")
                         .field("Required", permStr(req), true);
                 req.removeAll(m.permissions(tc));
-                throw new CommandException(eb.field("Missing", permStr(req), true).build());
+                c.sendMessage(eb.field("Missing", permStr(req), true).build());
             }
             return false;
         }

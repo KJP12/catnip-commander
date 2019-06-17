@@ -4,9 +4,9 @@ import com.mewna.catnip.Catnip;
 import com.mewna.catnip.entity.message.Embed;
 import com.mewna.catnip.entity.message.Message;
 import com.mewna.catnip.entity.message.MessageOptions;
+import io.reactivex.Single;
 
 import java.util.Objects;
-import java.util.concurrent.CompletionStage;
 
 public class WebhookClient {
     public final String TOKEN, ID;
@@ -18,7 +18,7 @@ public class WebhookClient {
         ID = id;
     }
 
-    public CompletionStage<Message> execute(Catnip catnip, MessageOptions msg) {
+    public Single<Message> execute(Catnip catnip, MessageOptions msg) {
         return catnip.rest().webhook().executeWebhook(ID, TOKEN, msg);
     }
 
@@ -26,15 +26,15 @@ public class WebhookClient {
         this.catnip = catnip;
     }
 
-    public CompletionStage<Message> send(MessageOptions msg) {
+    public Single<Message> send(MessageOptions msg) {
         return catnip.rest().webhook().executeWebhook(ID, TOKEN, msg);
     }
 
-    public CompletionStage<Message> send(Message msg) {
+    public Single<Message> send(Message msg) {
         return catnip.rest().webhook().executeWebhook(ID, TOKEN, new MessageOptions(msg));
     }
 
-    public CompletionStage<Message> send(Embed embed) {
+    public Single<Message> send(Embed embed) {
         return catnip.rest().webhook().executeWebhook(ID, TOKEN, new MessageOptions().embed(embed));
     }
 }

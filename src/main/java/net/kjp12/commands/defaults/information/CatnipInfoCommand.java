@@ -48,13 +48,13 @@ public class CatnipInfoCommand extends AbstractCommand {
     }
 
     void append(StringBuilder $receiver, int[] assess, ShardManager sm, int id, boolean isCurrent) {
-        var s = sm.shardState(id).exceptionally(t -> LifecycleState.DISCONNECTED).toCompletableFuture().join();
+        var s = sm.shardState(id).onErrorReturnItem(LifecycleState.DISCONNECTED).blockingGet();
         assess[s.ordinal()]++;
         if (isCurrent) $receiver.append('+');
         else if (s != LifecycleState.CONNECTED && s != LifecycleState.LOGGED_IN) $receiver.append('-');
         $receiver.append("Shard: ").append(id)
                 .append("; Status: ").append(s)
-                .append("; Heartbeat: ").append(sm.latency(id).exceptionally(t -> -2L).toCompletableFuture().join())
+                .append("; Heartbeat: ").append(sm.latency(id).onErrorReturnItem(-2L).blockingGet())
                 .append('\n');
     }
 

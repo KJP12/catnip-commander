@@ -3,7 +3,6 @@ package net.kjp12.commands.abstracts;//Created on 8/4/18.
 import com.mewna.catnip.entity.guild.Guild;
 import com.mewna.catnip.entity.message.Message;
 import net.kjp12.commands.CategorySystem;
-import net.kjp12.commands.CommandException;
 import net.kjp12.commands.utils.WebhookClient;
 
 import javax.annotation.Nullable;
@@ -70,19 +69,8 @@ public abstract class AbstractSubSystemCommand extends AbstractCommand implement
         return LISTENER.getPrefix(g);
     }
 
-    /**
-     * We will delegate to {@link #LISTENER} here.
-     */
     @Override
     public void handleThrowable(Throwable throwable, @Nullable Message message) {
         LISTENER.handleThrowable(throwable, message);
-    }
-
-    /**
-     * We will delegate to {@link #LISTENER} here.
-     */
-    @Override
-    public void handleCmdException(CommandException e, @Nullable Message message) {
-        LISTENER.handleCmdException(e, message);
     }
 }

@@ -21,7 +21,6 @@ import java.net.ProxySelector;
 import java.net.http.HttpClient;
 import java.util.stream.IntStream;
 
-import static net.kjp12.commands.utils.MiscellaneousUtils.distribute;
 import static net.kjp12.commands.utils.MiscellaneousUtils.getOrDefault;
 
 public class MainTest {
@@ -44,7 +43,6 @@ public class MainTest {
                 tmp = (shards + nodes - 1) / nodes,
                 offset = tmp * node;
         options.shardManager(new DefaultShardManager(IntStream.range(offset, offset + (offset + tmp > shards ? shards - offset : tmp))));
-
         var catnip = Catnip.catnip(options);
         var cl = new CommandListener(g -> "cl!");
         cl.CATEGORY_SYSTEM.buildCategory("owner only", (msg, ic, t) -> msg.author().equals(owner));
@@ -52,10 +50,16 @@ public class MainTest {
             cl.setWebhook(new WebhookClient(catnip, args[6], args[7]));
         } else
             cl.setWebhook(new WebhookClient(catnip, "503150567527284736", "6qIOWd3frKSkcjI9brPTBUutG4KIhaNPFhzD9s1BvYbhLWCzYZEdIFILhMT3lxigGiJC")) /*effectively no-op*/;
-        distribute(cl, DumpCommand::new, HelpCommand::new, CatnipInfoCommand::new, PingCommand::new, GetInviteCommand::new, ProcessCommand::new, t -> new EvaluatorCommand(t, EvaluatorCommand.SEM.getEngineByName("kotlin")));
+        new DumpCommand(cl);
+        new HelpCommand(cl);
+        new CatnipInfoCommand(cl);
+        new PingCommand(cl);
+        new GetInviteCommand(cl);
+        new ProcessCommand(cl);
+        new EvaluatorCommand(cl, EvaluatorCommand.SEM.getEngineByName("kotlin"));
         catnip.presence(Presence.OnlineStatus.DND, "Command System Debugging", Presence.ActivityType.PLAYING, null);
-        catnip.on(DiscordEvent.MESSAGE_CREATE, cl::onMessageReceived);
-        catnip.rest().user().getCurrentApplicationInformation().thenAccept(ai -> owner = ai.owner());
+        catnip.observable(DiscordEvent.MESSAGE_CREATE).forEach(cl::onMessageReceived);
+        catnip.rest().user().getCurrentApplicationInformation().subscribe(ai -> owner = ai.owner());
         catnip.connect();
     }
 }

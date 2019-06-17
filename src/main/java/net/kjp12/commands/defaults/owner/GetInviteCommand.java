@@ -24,7 +24,7 @@ public class GetInviteCommand extends AbstractCommand {
     public void run(Message msg, String arguments) {
         var catnip = msg.catnip();
         var cache = catnip.cache();
-        var cat = LISTENER.getCategory().buildCategory("owner only");
+        var cat = LISTENER.getCategorySystem().buildCategory("owner only");
         if (!arguments.isBlank() && cat.checkPermission(msg, this, false)) {
             var sb = new StringBuilder("```");
             var guilds = new LinkedList<Guild>();
@@ -42,11 +42,11 @@ public class GetInviteCommand extends AbstractCommand {
                 var i = getInvite(g, msg.author());
                 sb.append(stringify(g, true)).append(i == null ? " oh sad" : " https://discord.gg/" + i.code()).append('\n');
             });
-            msg.author().createDM().thenAccept(pc -> pc.sendMessage(sb.append("```").toString()).thenAcceptAsync(s -> msg.react("✅")).exceptionally(t -> LISTENER.handleThrowableV(t, msg))).exceptionally(t -> LISTENER.handleThrowableV(t, msg));
+            msg.author().createDM().subscribe(pc -> pc.sendMessage(sb.append("```").toString()).subscribe(s -> msg.react("✅"), t -> LISTENER.handleThrowable(t, msg)), t -> LISTENER.handleThrowable(t, msg));
         } else {
             if (cat.checkPermission(msg, this, false) || msg.member().hasPermissions(CREATE_INSTANT_INVITE)) {
                 var inv = getInvite(msg.guild(), msg.author());
-                msg.author().createDM().thenAcceptAsync(pc -> pc.sendMessage(inv == null ? "Couldn't fetch an invite." : "https://discord.gg/" + inv.code()).thenAcceptAsync(s -> msg.react("✅")).exceptionally(t -> LISTENER.handleThrowableV(t, msg))).exceptionally(t -> LISTENER.handleThrowableV(t, msg));
+                msg.author().createDM().subscribe(pc -> pc.sendMessage(inv == null ? "Couldn't fetch an invite." : "https://discord.gg/" + inv.code()).subscribe(s -> msg.react("✅"), t -> LISTENER.handleThrowable(t, msg)), t -> LISTENER.handleThrowable(t, msg));
             } else msg.react("❌");
         }
     }
@@ -55,29 +55,10 @@ public class GetInviteCommand extends AbstractCommand {
         var m = g.selfMember();//, r = g.getMember(requester);
         for (var tc : g.channels()) {
             if (!tc.isCategory() && m.hasPermissions(tc, CREATE_INSTANT_INVITE)) {
-                var i = tc.createInvite(new InviteCreateOptions().maxAge(0).maxUses(1).unique(true), "Requested by " + stringify(requester, true)).toCompletableFuture().join();
+                var i = tc.createInvite(new InviteCreateOptions().maxAge(0).maxUses(1).unique(true), "Requested by " + stringify(requester, true)).blockingGet();
                 if (i != null) return i;
             }
         }
-        /*for (var vc : g.getVoiceChannels()) {
-            if (m.hasPermission(vc, CREATE_INSTANT_INVITE)) {
-                var i = vc.createInvite().setMaxAge(0).setMaxUses(1).reason(stringify("Requested by", requester, true).toString()).complete();
-                if (i != null) return i;
-            }
-        }
-        for (var cat : g.getCategories()) {
-            if (m.hasPermission(cat, CREATE_INSTANT_INVITE)) {
-                var i = new InviteAction(g.getJDA(), cat.getId()).setMaxAge(0).setMaxUses(1).reason(stringify("Requested by", requester, true).toString()).complete();
-                if (i != null) return i;
-            }
-        }
-        if (m.hasPermission(MANAGE_CHANNEL, MANAGE_PERMISSIONS)) {
-            var tc = (TextChannel) g.getController().createTextChannel("invite-pls")
-                    .addPermissionOverride(m, Arrays.asList(CREATE_INSTANT_INVITE, MESSAGE_READ), null)
-                    .addPermissionOverride(g.getPublicRole(), null, Collections.singleton(MESSAGE_READ)).complete();
-            var i = tc.createInvite().setMaxAge(0).setMaxUses(1).reason(stringify("Requested by", requester, true).toString()).complete();
-            if (i != null) return i;
-        }*/
         return null;
     }
 

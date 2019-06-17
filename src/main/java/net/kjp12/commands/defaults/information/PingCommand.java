@@ -18,9 +18,9 @@ public class PingCommand extends AbstractCommand {
         var guild = msg.guild();
         var s = guild == null ? 0 : (guild.idAsLong() >> 22) % sm.shardCount();
         long b = System.currentTimeMillis();
-        channel.triggerTypingIndicator().thenAcceptAsync(v -> {
+        channel.triggerTypingIndicator().subscribe(() -> {
             long a = System.currentTimeMillis(), l = a - b;
-            sm.latency((int) s).thenAcceptAsync(hb -> {
+            sm.latency((int) s).subscribe(hb -> {
                 if (MiscellaneousUtils.canEmbed(msg))
                     channel.sendMessage(MiscellaneousUtils.genBaseEmbed(0x46AF2C, null, msg.guild(), "\uD83C\uDFD3 Pong!", null, MiscellaneousUtils.now())
                             .field("⌛ Latency", "**" + l + "ms**", true)
@@ -28,8 +28,9 @@ public class PingCommand extends AbstractCommand {
                             .field("\uD83D\uDC93 Heartbeat", "**" + hb + "ms**", true).build());
                 else
                     channel.sendMessage("\uD83C\uDFD3 **__Pong__**!\n⌛ **Latency** = `" + l + "ms`\n⏱ **Message Delay** = `" + (a - msg.creationTime().toInstant().toEpochMilli()) + "ms`\n\uD83D\uDC93 **Heartbeat** = `" + hb + "ms`");
-            }).exceptionally(t -> LISTENER.handleThrowableV(t, msg));
-        }).exceptionally(t -> LISTENER.handleThrowableV(t, msg));
+            }, t -> LISTENER.handleThrowable(t, msg));
+        }, t -> LISTENER.handleThrowable(t, msg));
+        COMMAND_LOGGER.info("Ping..?");
     }
 
     @Override

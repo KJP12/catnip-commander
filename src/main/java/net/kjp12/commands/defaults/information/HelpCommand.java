@@ -1,8 +1,8 @@
 package net.kjp12.commands.defaults.information;
 
 import com.mewna.catnip.entity.message.Message;
+import io.reactivex.functions.BiConsumer;
 import net.kjp12.commands.CategorySystem;
-import net.kjp12.commands.CommandException;
 import net.kjp12.commands.abstracts.AbstractCommand;
 import net.kjp12.commands.abstracts.ICommandListener;
 import net.kjp12.commands.abstracts.IViewable;
@@ -31,19 +31,20 @@ public class HelpCommand extends AbstractCommand implements IViewable {
     @Override
     public void view(Message msg) {
         var channel = msg.channel();
-        channel.sendMessage("Generating Help...").handleAsync((m, t) -> {
+        channel.sendMessage("Generating Help...").subscribe((BiConsumer<? super Message, ? super Throwable>) (m, t) -> {
             var catSys = LISTENER.getCategorySystem();
             var catList = catSys.getCategories();
             var allowed = new ArrayList<CategorySystem.Category>(catList.size());
             if (catSys.SYSTEM_CATEGORY.checkPermission(msg, this, false)) allowed.add(catSys.SYSTEM_CATEGORY);
-            else return m.edit("Command system is locked down. How did you execute this?");
+            else m.edit("Command system is locked down. How did you execute this?");
             var catMap = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
 
             for (var cat : catList)
                 try {
                     if (cat.checkPermission(msg, this, false)) allowed.add(cat);
                 } catch (Throwable thr) {
-                    LISTENER.handleCmdException(new CommandException("Category " + cat.NAME + " threw an error!", thr), msg);
+                    //TODO: LISTENER#handleThrowable(String reason, Throwable cause, Message msg)
+                    LISTENER.handleThrowable(new Exception("Category " + cat.NAME + " threw an error!", thr), msg);
                 }
 
             boolean isEmbed = MiscellaneousUtils.canEmbed(msg);
@@ -62,7 +63,8 @@ public class HelpCommand extends AbstractCommand implements IViewable {
                             sortedCmds.add((noError && cmd.checkRuntimePermission(m, false)) ? cmd.getFirstAliases() : cmd.getFirstAliases() + "*");
                     } catch (Throwable cmdt) {
                         sortedCmds.add(cmd.getFirstAliases() + " e");
-                        LISTENER.handleCmdException(new CommandException("Command " + stringify(cmd) + " threw an error!", t), msg);
+                        //TODO: LISTENER#handleThrowable(String reason, Throwable cause, Message msg)
+                        LISTENER.handleThrowable(new Exception("Command " + stringify(cmd) + " threw an error!", t), msg);
                     }
                 }
 
@@ -83,14 +85,14 @@ public class HelpCommand extends AbstractCommand implements IViewable {
                 var eb = MiscellaneousUtils.genBaseEmbed(0x46AF2C, msg.author(), msg.guild(), "Help Menu", null, msg.creationTime());
                 if (description != null) eb.description(description);
                 for (var ess : catMap.entrySet()) eb.field(ess.getKey(), ess.getValue(), false);
-                return m.edit(eb.build());
+                m.edit(eb.build());
             } else {
                 var sb = new StringBuilder("**__Help Menu__**\n");
                 if (description != null) sb.append(description).append('\n');
                 sb.append('\n');
                 for (var ess : catMap.entrySet())
                     sb.append(ess.getKey()).append('\n').append(ess.getValue()).append("\n\n");
-                return m.edit(sb.substring(0, sb.length() - 2));
+                m.edit(sb.substring(0, sb.length() - 2));
             }
         });
     }

@@ -3,18 +3,18 @@ package net.kjp12.commands.defaults.owner;
 import com.mewna.catnip.entity.message.Message;
 import com.mewna.catnip.entity.message.MessageOptions;
 import com.mewna.catnip.entity.util.Permission;
-import net.kjp12.commands.CommandException;
 import net.kjp12.commands.Executors;
 import net.kjp12.commands.abstracts.AbstractCommand;
 import net.kjp12.commands.abstracts.AbstractSubSystemCommand;
 import net.kjp12.commands.abstracts.ICommandListener;
+import net.kjp12.commands.abstracts.IViewable;
 import net.kjp12.commands.defaults.information.HelpCommand;
 import net.kjp12.commands.utils.MiscellaneousUtils;
 
 import static net.kjp12.commands.utils.GlobalVariables.charset;
-import static net.kjp12.commands.utils.MiscellaneousUtils.*;
+import static net.kjp12.commands.utils.MiscellaneousUtils.genBaseEmbed;
+import static net.kjp12.commands.utils.MiscellaneousUtils.now;
 import static net.kjp12.commands.utils.StringUtils.indexOf;
-import static net.kjp12.commands.utils.StringUtils.splitByPredicate;
 
 public class ProcessCommand extends AbstractSubSystemCommand {
 
@@ -51,7 +51,7 @@ public class ProcessCommand extends AbstractSubSystemCommand {
         return "Process Command";
     }
 
-    public static class ProcessKill extends AbstractCommand {
+    public static class ProcessKill extends AbstractCommand implements IViewable {
 
         public ProcessKill(ICommandListener clb) {
             super(clb);
@@ -59,14 +59,27 @@ public class ProcessCommand extends AbstractSubSystemCommand {
 
         @Override
         public void run(Message msg, String arguments) {
-            if (arguments.isEmpty()) throw new CommandException("Command must not be empty");
-            var a = getOrThrow(() -> Long.parseUnsignedLong(arguments.substring(0, indexOf(arguments, Character::isSpaceChar))), e -> {
-                throw new CommandException("Not a number");
-            });
+            long a = -1L;
+            try {
+                var i = indexOf(arguments, Character::isSpaceChar);
+                a = Long.parseUnsignedLong(i < 0 ? arguments : arguments.substring(0, i));
+            } catch (NumberFormatException nfe) {
+                msg.channel().sendMessage("Not a number.");
+                return;
+            }
             var pi = Executors.INSTANCE.INSTANCES.get(a);
-            if (pi == null) throw new CommandException("Process Instance not found.");
+            if (pi == null) {
+                msg.channel().sendMessage("Process not found.");
+                return;
+            }
             pi.PROCESS.destroy();
             msg.channel().sendMessage("Destroyed " + pi.PID);
+        }
+
+        @Override
+        public void view(Message msg) {
+            //TODO: Interactive. Consider: All processes on system?
+            msg.channel().sendMessage("Which process would you like me to kill?");
         }
 
         @Override
@@ -85,7 +98,7 @@ public class ProcessCommand extends AbstractSubSystemCommand {
         }
     }
 
-    public static class ProcessOutput extends AbstractCommand {
+    public static class ProcessOutput extends AbstractCommand implements IViewable {
 
         public ProcessOutput(ICommandListener clb) {
             super(clb);
@@ -94,14 +107,22 @@ public class ProcessCommand extends AbstractSubSystemCommand {
         @SuppressWarnings("ResultOfMethodCallIgnored")
         @Override
         public void run(Message msg, String arguments) {
-            if (arguments.isBlank()) throw new CommandException("Nothing to give output for?");
-            var a = splitByPredicate(arguments, Character::isSpaceChar, 0, 2);
-            if (a.length == 0) throw new CommandException("Cannot parse PID!");
-            var pi = Executors.INSTANCE.INSTANCES.get(Long.parseUnsignedLong(a[0]));
-            if (pi == null) throw new CommandException("Process Instance not found.");
+            long a = -1L;
+            try {
+                var i = indexOf(arguments, Character::isSpaceChar);
+                a = Long.parseUnsignedLong(i < 0 ? arguments : arguments.substring(0, i));
+            } catch (NumberFormatException nfe) {
+                msg.channel().sendMessage("Not a number.");
+                return;
+            }
+            var pi = Executors.INSTANCE.INSTANCES.get(a);
+            if (pi == null) {
+                msg.channel().sendMessage("Process not found.");
+                return;
+            }
             String out = pi.getOut().toString(), err = pi.getErr().toString();
             boolean $ob = out.isBlank(), $eb = err.isBlank();
-            var mc = MiscellaneousUtils.selfHasPermissions(msg, Permission.EMBED_LINKS, Permission.ATTACH_FILES) ? msg.channel() : msg.author().createDM().toCompletableFuture().join();
+            var mc = MiscellaneousUtils.selfHasPermissions(msg, Permission.EMBED_LINKS, Permission.ATTACH_FILES) ? msg.channel() : msg.author().createDM().blockingGet();
             var eb = genBaseEmbed(0x00ff00, msg.author(), msg.guild(), "Process " + pi.PID + " streams.", "", now());
             if ($ob && $eb) mc.sendMessage(eb.description("No process streams available.").build());
             else if ($ob)
@@ -131,6 +152,12 @@ public class ProcessCommand extends AbstractSubSystemCommand {
         public String[] toCategories() {
             return new String[]{"executor"};
         }
+
+        @Override
+        public void view(Message msg) {
+            //TODO: Interactive
+            msg.channel().sendMessage("Which process output would you like?");
+        }
     }
 
     public static class ProcessExecute extends AbstractCommand {
@@ -146,7 +173,7 @@ public class ProcessCommand extends AbstractSubSystemCommand {
                     (Executors.DurianBiConsumer<Executors.ProcessInstance, Integer>) (pi, exit) -> {
                         String out = pi.getOut().toString(), err = pi.getErr().toString();
                         boolean $ob = out.isBlank(), $eb = err.isBlank();
-                        var mc = MiscellaneousUtils.selfHasPermissions(msg, Permission.EMBED_LINKS, Permission.ATTACH_FILES) ? msg.channel() : msg.author().createDM().toCompletableFuture().join();
+                        var mc = MiscellaneousUtils.selfHasPermissions(msg, Permission.EMBED_LINKS, Permission.ATTACH_FILES) ? msg.channel() : msg.author().createDM().blockingGet();
                         var eb = genBaseEmbed(exit, msg.author(), msg.guild(), "Process " + pi.PID + " exited.", "Process exited with " + exit, now());
                         if ($ob && $eb) mc.sendMessage(eb.description("Process exited. (No Output)").build());
                         else if ($ob)
@@ -199,9 +226,9 @@ public class ProcessCommand extends AbstractSubSystemCommand {
             var mc = msg.channel();
             if (sb.length() < 1990) mc.sendMessage(sb.insert(0, "```css\n").append("```").toString());
             else if (MiscellaneousUtils.selfHasPermissions(msg, Permission.ATTACH_FILES)) {
-                mc.sendMessage(MiscellaneousUtils.attachString(msg.channel(), "Processes.css", sb.toString()));
+                mc.sendMessage(MiscellaneousUtils.attachString(new MessageOptions(), "Processes.css", sb.toString()));
             } else
-                msg.author().createDM().thenAcceptAsync(dm -> dm.sendMessage((MiscellaneousUtils.attachString(msg.channel(), "Processes.css", sb.toString()))));
+                msg.author().createDM().subscribe(dm -> dm.sendMessage((MiscellaneousUtils.attachString(new MessageOptions(), "Processes.css", sb.toString()))));
         }
 
         @Override

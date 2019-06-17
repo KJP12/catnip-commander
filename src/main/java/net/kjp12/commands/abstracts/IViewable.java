@@ -1,7 +1,6 @@
 package net.kjp12.commands.abstracts;
 
 import com.mewna.catnip.entity.message.Message;
-import net.kjp12.commands.CommandException;
 
 import javax.annotation.Nonnull;
 import java.util.function.Consumer;
@@ -13,8 +12,7 @@ public interface IViewable extends ICommand {
      * Your code for the command instance.
      *
      * @param msg Context as {@link Message}
-     * @throws CommandException When command execution goes wrong and needs to exit quickly. This is a softer runtime exception unless there is another {@link Throwable} wrapped in it.
-     * @throws Throwable        When anything else goes wrong. Is a harsh exception and will return an error. Will be wrapped in a {@link CommandException} by {@link #execute(Message, String)} unless said method was overridden
+     * @throws Throwable        When anything goes wrong.
      */
     void view(Message msg) throws Throwable;
 
@@ -46,9 +44,8 @@ public interface IViewable extends ICommand {
      * Checks the permissions per-command. Maybe used with a permission array like in {@link IUserPermissionCommand#checkViewingPermission(Message, boolean)}
      *
      * @param msg Context as {@link Message}. Used for getting Member or User.
-     * @param t   If it should throw an exception or return false on failure.
+     * @param t   If it should a message on failure.
      * @return If the permission check passed. Defaults to using {@link #checkRuntimePermission(Message, boolean)}.
-     * @throws CommandException Permissions check failed and parameter t is false, and is able to throw an exception.
      */
     default boolean checkViewingPermission(Message msg, boolean t) {
         return checkRuntimePermission(msg, t);

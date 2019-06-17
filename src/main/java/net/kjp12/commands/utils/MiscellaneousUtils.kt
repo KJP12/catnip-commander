@@ -1,5 +1,4 @@
 @file:JvmName("MiscellaneousUtils")
-@file:JvmMultifileClass
 
 package net.kjp12.commands.utils
 
@@ -136,6 +135,8 @@ fun <T> Callable<T>.getOrDefault(t: T) = try {
 }
 
 //You know what you're throwing.
+@java.lang.Deprecated
+@Deprecated(level = DeprecationLevel.WARNING, message = "Unneeded in current state")
 fun <O> Callable<O>.getOrThrow(t: DurianConsumer<Exception>) = try {
     call()
 } catch (e: Exception) {

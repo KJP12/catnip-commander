@@ -3,7 +3,6 @@ package net.kjp12.commands.abstracts;
 import com.mewna.catnip.entity.guild.Guild;
 import com.mewna.catnip.entity.message.Message;
 import net.kjp12.commands.CategorySystem;
-import net.kjp12.commands.CommandException;
 import net.kjp12.commands.utils.MiscellaneousUtils;
 import net.kjp12.commands.utils.WebhookClient;
 import org.slf4j.Logger;
@@ -13,7 +12,6 @@ import javax.annotation.Nullable;
 import java.util.UUID;
 
 import static net.kjp12.commands.utils.MiscellaneousUtils.attemptSend;
-import static net.kjp12.commands.utils.MiscellaneousUtils.sendMessage;
 
 
 public interface ICommandListener {
@@ -26,15 +24,6 @@ public interface ICommandListener {
      * @return {@link CategorySystem} for use with new instances of {@link ICommand}, like {@link AbstractCommand}.
      */
     CategorySystem getCategorySystem();
-
-    /**
-     * @inheritDoc {@link ICommandListener#getCategorySystem()}
-     * @deprecated Legacy method; use {@link ICommandListener#getCategorySystem()}
-     */
-    @Deprecated
-    default CategorySystem getCategory() {
-        return getCategorySystem();
-    }
 
     /**
      * @param guild Guild for the prefix
@@ -71,7 +60,6 @@ public interface ICommandListener {
      * @param ac   The command to execute.
      * @param msg  Context as {@link Message}.
      * @param args Arguments as a singular {@link String}.
-     * @throws CommandException - If it is executing on the spot and the command that was running fails.
      */
     default void startCommand(ICommand ac, Message msg, String args) {
         //providing default method as we can just start it here.
@@ -79,43 +67,32 @@ public interface ICommandListener {
     }
 
     /**
-     * Throwable handling, hands off to {@link #handleCmdException(CommandException, Message)} if cause is {@link CommandException}.
-     * <p>
-     * Will always call {@link MiscellaneousUtils#attemptSend(ICommandListener, Throwable, Message)} on non-CommandException errors.
+     * Will always call {@link MiscellaneousUtils#attemptSend(ICommandListener, Throwable, Message)}.
      *
      * @param cause The error.
      * @param msg   Context as {@link Message}. Gives all the information like the raw message, who ran it, etc.
      */
     default void handleThrowable(Throwable cause, @Nullable Message msg) {
-        if (cause instanceof CommandException) {
+        //no more special case handling.
+        /*if (cause instanceof CommandException) {
             handleCmdException((CommandException) cause, msg);
             return;
-        }
+        }*/
         cause.printStackTrace();
         if (msg != null) msg.react("⛔");
         UUID uid = attemptSend(this, cause, msg);
-        sendMessage(msg, mc -> mc.sendMessage(MiscellaneousUtils.genBaseEmbed(0xaa1200, msg.author(), msg.guild(), "Something has failed", "Error UID " + uid, msg.creationTime()).description(cause.getMessage()).build()));
-
+        msg.channel().sendMessage("Something failed; ``" + cause.getMessage() + "``; Error UID: `" + uid + "`");
         LOGGER.error("Error UID: " + uid, cause);
     }
 
     /**
-     * Hack-patch error handler method for the exceptionally method of Futures. Guaranteed to return null.
+     * @deprecated Use {@link #handleThrowable(Throwable, Message)} or don't manually throw user-oriented exceptions!
      */
-    default <T> T handleThrowableV(Throwable cause, @Nullable Message msg) {
-        handleThrowable(cause, msg);
-        return null;
-    }
-
-    /**
-     * Command Error handling. If a {@link Throwable} is wrapped in it, calls {@link MiscellaneousUtils#attemptSend(ICommandListener, Throwable, Message)},
-     * else sends to the author the {@link CommandException#message} that was made on initialization-time.
-     *
-     * @param ce  The {@link CommandException} caused by a command.
-     * @param msg Context as {@link Message}. Gives all the information like the raw message, who ran it, etc.
-     */
-    default void handleCmdException(CommandException ce, @Nullable Message msg) {
-        var hook = getWebhook();
+    //signature has been changed to a lower level due to the removal of CommandException.
+    @Deprecated(forRemoval = true)
+    default void handleCmdException(RuntimeException ce, @Nullable Message msg) {
+        handleThrowable(ce, msg); //It is an error to use this.
+        /*var hook = getWebhook();
         var cause = ce.getCause();
         var message = ce.getJDAMessage();
         if (cause != null) {
@@ -125,10 +102,8 @@ public interface ICommandListener {
                 var author = msg.author();
                 s.sendMessage(MiscellaneousUtils.genBaseEmbed(0xaa1200, author, msg.guild(), "Something has failed", "UID - " + uid, msg.creationTime())
                         .description("The error has been sent to the owner.")
-                        .field("Cause", ce.toString(), false).build()).exceptionally(e -> {
-                    handleThrowable(e, null);
-                    return null;
-                });
+                        .field("Cause", ce.toString(), false).build()).subscribe(m -> {
+                }, e -> handleThrowable(e, null));
                 if (message != null) s.sendMessage(message);
             }, t -> {
                 attemptSend(this, t, msg);
@@ -146,6 +121,6 @@ public interface ICommandListener {
                 attemptSend(this, t, msg);
                 hook.send(e);
             });
-        }
+        }*/
     }
 }

@@ -61,25 +61,22 @@ public class EvaluatorCommand extends AbstractCommand {
         } else {
             var i = new MessageOptions().content("Evaluation Complete! See attached file.").addFile("Eval-" + System.currentTimeMillis() + ".log", s.getBytes(StandardCharsets.UTF_8));
             if (member != null) catnip.cache().dmChannelAsync(author.idAsLong())
-                    .thenAcceptAsync(dm -> dm.sendMessage(i))
-                    .exceptionally(e -> {
+                    .subscribe(dm -> dm.sendMessage(i), e -> {
                         LISTENER.handleThrowable(e, msg);
-                        LISTENER.getWebhook().send(i).exceptionally(e2 -> {
+                        LISTENER.getWebhook().send(i).doOnError(e2 -> {
                             COMMAND_LOGGER.error("Webhook died.", e2);
                             System.out.println("Evaluator input:\n" + args + "\n\nEvaluator output:\n" + s + "\n");
-                            return null;
                         });
                         if (member == null || member.hasPermissions(channel.asGuildChannel(), Permission.ADD_REACTIONS))
                             msg.react("📬");
-                        return null;
                     });
             else if (member != null && member.hasPermissions(channel.asGuildChannel(), Permission.SEND_MESSAGES, Permission.ATTACH_FILES)) {
                 channel.sendMessage(i);
             } else {
-                LISTENER.getWebhook().send(i).exceptionally(e -> {
+                LISTENER.getWebhook().send(i).subscribe(m -> {
+                }, e -> {
                     COMMAND_LOGGER.error("Webhook died.", e);
                     System.out.println("Evaluator input:\n" + args + "\n\nEvaluator output:\n" + s + "\n");
-                    return null;
                 });
                 if (member == null || member.hasPermissions(channel.asGuildChannel(), Permission.ADD_REACTIONS))
                     msg.react("📬");

@@ -44,9 +44,9 @@ public class CommandListener extends AbstractCommandListener implements Thread.U
     private void init() {
         CATEGORY_SYSTEM.buildCategory("owner only", (msg, ac, t) -> false);
         CATEGORY_SYSTEM.buildCategory("guild only", (msg, ac, t) -> {
-            if (!msg.channel().isGuild()) {
-                if (t)
-                    throw new CommandException("Run this in a server!");
+            var c = msg.channel();
+            if (!c.isGuild()) {
+                if (t) c.sendMessage("Run this in a server!");
                 return false;
             }
             return true;

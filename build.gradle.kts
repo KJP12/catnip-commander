@@ -6,7 +6,7 @@ plugins {
     `java-library`
     maven
     `maven-publish`
-    kotlin("jvm") version "1.3.30"
+    kotlin("jvm") version "1.3.31"
 }
 
 val ver = Version("1", "0", "0", env("BUILD_NUMBER") ?: env("GIT_COMMIT")?.substring(0..6) ?: "DEV")
@@ -20,7 +20,7 @@ repositories {
 }
 
 dependencies {
-    api("com.github.mewna:catnip:12dba23")
+    api("com.github.kjp12:catnip:f717715")
     api(kotlin("stdlib-jdk8"))
     testImplementation("ch.qos.logback:logback-classic:1.2.3")
     testCompile(kotlin("script-runtime"))

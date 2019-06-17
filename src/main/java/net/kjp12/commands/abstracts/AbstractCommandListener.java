@@ -62,8 +62,8 @@ public abstract class AbstractCommandListener implements ICommandListener {
      * you should use the following code.
      * <code>
      * AbstractCommandListener acl = $init();
-     * Catnip catnip = Catnip.catnipAsync("Token").join();
-     * catnip.on(DiscordEvent.MESSAGE_CREATE, acl::onMessageReceived);
+     * Catnip catnip = Catnip.catnip("Token");
+     * catnip.observable(DiscordEvent.MESSAGE_CREATE).forEach(cl::onMessageReceived);
      * </code>
      * <p>
      * The code isn't required, you can implement your own variant if you wish.

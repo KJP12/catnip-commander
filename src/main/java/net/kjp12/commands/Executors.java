@@ -12,7 +12,9 @@ import java.io.*;
 import java.nio.CharBuffer;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Optional;
+import java.util.StringTokenizer;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -28,11 +30,6 @@ public final class Executors extends ThreadGroup {
     private Executors() {
         super("Executors");
         setMaxPriority(Thread.NORM_PRIORITY - 1); //isn't crucial for operation.
-    }
-
-    @Deprecated(forRemoval = true)
-    public static long nextPid() {
-        return INCREMENT.getAndIncrement();
     }
 
     @SafeVarargs
