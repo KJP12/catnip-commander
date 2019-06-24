@@ -56,7 +56,7 @@ public class MainTest {
         new PingCommand(cl);
         new GetInviteCommand(cl);
         new ProcessCommand(cl);
-        new EvaluatorCommand(cl, EvaluatorCommand.SEM.getEngineByName("kotlin"));
+        new EvaluatorCommand(cl, EvaluatorCommand.SEM.getEngineByName("groovy"));
         catnip.presence(Presence.OnlineStatus.DND, "Command System Debugging", Presence.ActivityType.PLAYING, null);
         catnip.observable(DiscordEvent.MESSAGE_CREATE).forEach(cl::onMessageReceived);
         catnip.rest().user().getCurrentApplicationInformation().subscribe(ai -> owner = ai.owner());

@@ -8,8 +8,9 @@ import com.mewna.catnip.util.CatnipMeta;
 import net.kjp12.commands.CommandSystemInfo;
 import net.kjp12.commands.abstracts.AbstractCommand;
 import net.kjp12.commands.abstracts.ICommandListener;
-import net.kjp12.commands.utils.GlobalVariables;
 import net.kjp12.commands.utils.StringUtils;
+
+import java.nio.charset.StandardCharsets;
 
 public class CatnipInfoCommand extends AbstractCommand {
     private final static LifecycleState[] STATES = LifecycleState.values();
@@ -44,7 +45,7 @@ public class CatnipInfoCommand extends AbstractCommand {
         if (sb.insert(0, "Total = " + total + "\nFailing = " + failed + "\nFailure = " + Math.round((double) failed / (double) total * 100) + "%\n").length() < 2000 - 29)
             channel.sendMessage(sb.insert(0, "**__Shard Info__**```diff\n").append("```").toString());
         else
-            channel.sendMessage(new MessageOptions().addFile("shardinfo.diff", sb.toString().getBytes(GlobalVariables.charset)));
+            channel.sendMessage(new MessageOptions().addFile("shardinfo.diff", sb.toString().getBytes(StandardCharsets.UTF_8)));
     }
 
     void append(StringBuilder $receiver, int[] assess, ShardManager sm, int id, boolean isCurrent) {

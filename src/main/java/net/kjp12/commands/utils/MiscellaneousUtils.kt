@@ -20,6 +20,7 @@ import net.kjp12.commands.abstracts.ICommandListener
 import org.slf4j.LoggerFactory
 import java.io.PrintWriter
 import java.io.StringWriter
+import java.nio.charset.StandardCharsets
 import java.time.Clock
 import java.time.OffsetDateTime
 import java.time.temporal.TemporalAccessor
@@ -102,7 +103,7 @@ fun sendError(wc: WebhookClient?, stack: Throwable, uid: UUID, msg: Message?) {
     wc.send(MessageOptions().embed(eb.build()).attachString("$uid-stack", sw.toString()))
 }
 
-fun MessageOptions.attachString(name: String, content: String) = addFile(name, content.toByteArray(charset))
+fun MessageOptions.attachString(name: String, content: String) = addFile(name, content.toByteArray(StandardCharsets.UTF_8))
 
 fun ICommandListener.getStackedPrefix(guild: Guild?): String {
     val sb = StringBuilder()
@@ -132,16 +133,6 @@ fun <T> Callable<T>.getOrDefault(t: T) = try {
     call()
 } catch (e: Exception) {
     t
-}
-
-//You know what you're throwing.
-@java.lang.Deprecated
-@Deprecated(level = DeprecationLevel.WARNING, message = "Unneeded in current state")
-fun <O> Callable<O>.getOrThrow(t: DurianConsumer<Exception>) = try {
-    call()
-} catch (e: Exception) {
-    t.accept(e)
-    throw e
 }
 
 //<editor-fold desc="fields">

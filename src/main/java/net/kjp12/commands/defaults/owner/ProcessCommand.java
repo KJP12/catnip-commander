@@ -11,7 +11,7 @@ import net.kjp12.commands.abstracts.IViewable;
 import net.kjp12.commands.defaults.information.HelpCommand;
 import net.kjp12.commands.utils.MiscellaneousUtils;
 
-import static net.kjp12.commands.utils.GlobalVariables.charset;
+import static java.nio.charset.StandardCharsets.UTF_8;
 import static net.kjp12.commands.utils.MiscellaneousUtils.genBaseEmbed;
 import static net.kjp12.commands.utils.MiscellaneousUtils.now;
 import static net.kjp12.commands.utils.StringUtils.indexOf;
@@ -59,7 +59,7 @@ public class ProcessCommand extends AbstractSubSystemCommand {
 
         @Override
         public void run(Message msg, String arguments) {
-            long a = -1L;
+            long a;
             try {
                 var i = indexOf(arguments, Character::isSpaceChar);
                 a = Long.parseUnsignedLong(i < 0 ? arguments : arguments.substring(0, i));
@@ -107,7 +107,7 @@ public class ProcessCommand extends AbstractSubSystemCommand {
         @SuppressWarnings("ResultOfMethodCallIgnored")
         @Override
         public void run(Message msg, String arguments) {
-            long a = -1L;
+            long a;
             try {
                 var i = indexOf(arguments, Character::isSpaceChar);
                 a = Long.parseUnsignedLong(i < 0 ? arguments : arguments.substring(0, i));
@@ -129,11 +129,11 @@ public class ProcessCommand extends AbstractSubSystemCommand {
                 if (err.length() < 2048 - 11)
                     mc.sendMessage(eb.description("```java\n" + err + "```").build());
                 else
-                    mc.sendMessage(new MessageOptions().embed(eb.build()).addFile("STDERR.txt", err.getBytes(charset)));
+                    mc.sendMessage(new MessageOptions().embed(eb.build()).addFile("STDERR.txt", err.getBytes(UTF_8)));
             else {
                 var opt = out.length() < 2048 - 11 ? new MessageOptions().embed(eb.description("```java\n" + out + "```").build()) :
-                        new MessageOptions().embed(eb.build()).addFile("STDOUT.txt", out.getBytes(charset));
-                if (!$eb) opt.addFile("STDERR.txt", err.getBytes(charset));
+                        new MessageOptions().embed(eb.build()).addFile("STDOUT.txt", out.getBytes(UTF_8));
+                if (!$eb) opt.addFile("STDERR.txt", err.getBytes(UTF_8));
                 mc.sendMessage(opt);
             }
         }
@@ -180,11 +180,11 @@ public class ProcessCommand extends AbstractSubSystemCommand {
                             if (err.length() < 2048 - 11)
                                 mc.sendMessage(eb.description("```java\n" + err + "```").build());
                             else
-                                mc.sendMessage(new MessageOptions().embed(eb.build()).addFile("STDERR.txt", err.getBytes(charset)));
+                                mc.sendMessage(new MessageOptions().embed(eb.build()).addFile("STDERR.txt", err.getBytes(UTF_8)));
                         else {
                             var opt = out.length() < 2048 - 11 ? new MessageOptions().embed(eb.description("```java\n" + out + "```").build()) :
-                                    new MessageOptions().embed(eb.build()).addFile("STDOUT.txt", out.getBytes(charset));
-                            if (!$eb) opt.addFile("STDERR.txt", out.getBytes(charset));
+                                    new MessageOptions().embed(eb.build()).addFile("STDOUT.txt", out.getBytes(UTF_8));
+                            if (!$eb) opt.addFile("STDERR.txt", out.getBytes(UTF_8));
                             mc.sendMessage(opt);
                         }
                     });

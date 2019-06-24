@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnull;
 import java.io.*;
 import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
@@ -47,7 +48,7 @@ public final class Executors extends ThreadGroup {
             public void run() {
                 Reader reader = null;
                 try {
-                    reader = new InputStreamReader(is, GlobalVariables.charset);
+                    reader = new InputStreamReader(is, StandardCharsets.UTF_8);
                     char[] charBuffer = new char[64];//8192];
                     //noinspection StatementWithEmptyBody
                     while (dar.push(charBuffer, reader.read(charBuffer))) ;

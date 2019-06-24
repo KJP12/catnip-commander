@@ -6,7 +6,7 @@ plugins {
     `java-library`
     maven
     `maven-publish`
-    kotlin("jvm") version "1.3.31"
+    kotlin("jvm") version "1.3.40"
 }
 
 val ver = Version("1", "0", "0", env("BUILD_NUMBER") ?: env("GIT_COMMIT")?.substring(0..6) ?: "DEV")
@@ -20,13 +20,10 @@ repositories {
 }
 
 dependencies {
-    api("com.github.kjp12:catnip:f717715")
+    api("com.mewna:catnip:346e95657")
     api(kotlin("stdlib-jdk8"))
     testImplementation("ch.qos.logback:logback-classic:1.2.3")
-    testCompile(kotlin("script-runtime"))
-    testCompile(kotlin("script-util"))
-    testCompile(kotlin("reflect"))
-    testCompile(kotlin("compiler-embeddable"))
+    testCompile("org.codehaus.groovy", "groovy-jsr223", "3.0.0-beta-1", classifier = "indy")
     testCompile("junit", "junit", "4.12")
     testCompile("org.junit.jupiter", "junit-jupiter-api", "5.4.1")
     testCompile("org.junit.jupiter", "junit-jupiter-engine", "5.4.1")
