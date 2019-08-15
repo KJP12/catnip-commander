@@ -10,7 +10,10 @@ import net.kjp12.commands.abstracts.ICommandListener;
 
 import java.util.LinkedList;
 
+import static com.mewna.catnip.entity.util.Permission.ADD_REACTIONS;
 import static com.mewna.catnip.entity.util.Permission.CREATE_INSTANT_INVITE;
+import static net.kjp12.commands.utils.MiscellaneousUtils.getDmChannel;
+import static net.kjp12.commands.utils.MiscellaneousUtils.selfHasPermissions;
 import static net.kjp12.commands.utils.StringUtils.splitByPredicate;
 import static net.kjp12.commands.utils.StringUtils.stringify;
 
@@ -42,12 +45,16 @@ public class GetInviteCommand extends AbstractCommand {
                 var i = getInvite(g, msg.author());
                 sb.append(stringify(g, true)).append(i == null ? " oh sad" : " https://discord.gg/" + i.code()).append('\n');
             });
-            msg.author().createDM().subscribe(pc -> pc.sendMessage(sb.append("```").toString()).subscribe(s -> msg.react("✅"), t -> LISTENER.handleThrowable(t, msg)), t -> LISTENER.handleThrowable(t, msg));
+            getDmChannel(msg).subscribe(pc -> pc.sendMessage(sb.append("```").toString()).subscribe(s -> {
+                if (selfHasPermissions(msg, ADD_REACTIONS)) msg.react("✅");
+            }, t -> LISTENER.handleThrowable(t, msg)), t -> LISTENER.handleThrowable(t, msg));
         } else {
             if (cat.checkPermission(msg, this, false) || msg.member().hasPermissions(CREATE_INSTANT_INVITE)) {
                 var inv = getInvite(msg.guild(), msg.author());
-                msg.author().createDM().subscribe(pc -> pc.sendMessage(inv == null ? "Couldn't fetch an invite." : "https://discord.gg/" + inv.code()).subscribe(s -> msg.react("✅"), t -> LISTENER.handleThrowable(t, msg)), t -> LISTENER.handleThrowable(t, msg));
-            } else msg.react("❌");
+                getDmChannel(msg.author()).subscribe(pc -> pc.sendMessage(inv == null ? "Couldn't fetch an invite." : "https://discord.gg/" + inv.code()).subscribe(s -> {
+                    if (selfHasPermissions(msg, ADD_REACTIONS)) msg.react("✅");
+                }, t -> LISTENER.handleThrowable(t, msg)), t -> LISTENER.handleThrowable(t, msg));
+            } else if (selfHasPermissions(msg, ADD_REACTIONS)) msg.react("❌");
         }
     }
 

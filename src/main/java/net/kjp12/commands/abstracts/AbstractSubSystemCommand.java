@@ -1,9 +1,9 @@
 package net.kjp12.commands.abstracts;//Created on 8/4/18.
 
+import com.mewna.catnip.entity.channel.Webhook;
 import com.mewna.catnip.entity.guild.Guild;
 import com.mewna.catnip.entity.message.Message;
 import net.kjp12.commands.CategorySystem;
-import net.kjp12.commands.utils.WebhookClient;
 
 import javax.annotation.Nullable;
 import java.util.Map;
@@ -60,7 +60,7 @@ public abstract class AbstractSubSystemCommand extends AbstractCommand implement
     }
 
     @Override
-    public WebhookClient getWebhook() {
+    public Webhook getWebhook() {
         return LISTENER.getWebhook();
     }
 

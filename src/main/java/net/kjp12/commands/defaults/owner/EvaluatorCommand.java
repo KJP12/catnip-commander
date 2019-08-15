@@ -2,16 +2,16 @@ package net.kjp12.commands.defaults.owner;
 
 import com.mewna.catnip.entity.message.Message;
 import com.mewna.catnip.entity.message.MessageOptions;
-import com.mewna.catnip.entity.util.Permission;
 import net.kjp12.commands.abstracts.AbstractCommand;
 import net.kjp12.commands.abstracts.ICommandListener;
-import net.kjp12.commands.utils.MiscellaneousUtils;
 
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 
+import static com.mewna.catnip.entity.util.Permission.*;
+import static net.kjp12.commands.utils.MiscellaneousUtils.*;
 import static org.apache.commons.lang3.StringUtils.capitalize;
 
 public class EvaluatorCommand extends AbstractCommand {
@@ -38,9 +38,10 @@ public class EvaluatorCommand extends AbstractCommand {
         var channel = msg.channel();
         var guild = msg.guild();
         var catnip = msg.catnip();
+        var shardManager = catnip.shardManager();
         engine.put("api", catnip);
         engine.put("catnip", catnip);
-        engine.put("shard", (guild.idAsLong() >> 22L) % (long) catnip.gatewayInfo().shards()); //Would return a shard instance, but there isn't a shard-view implementation, so number will suffice.
+        engine.put("shard", shardManager.shard(guild == null ? 0 : (int) (guild.idAsLong() >> 22L % shardManager.shardCount()))); //Would return a shard instance, but there isn't a shard-view implementation, so number will suffice.
         engine.put("channel", channel);
         engine.put("message", msg);
         engine.put("msg", msg);
@@ -50,37 +51,24 @@ public class EvaluatorCommand extends AbstractCommand {
         engine.put("commandSystem", LISTENER);
         //insert extension system here
         var o = engine.eval(args);
+        engine.put("last", o);
         var s = Objects.toString(o);
 
-        var member = guild == null ? null : guild.selfMember();
-        var self = catnip.selfUser();
-        if (s.length() < /*Since there is no variable to reference...*/ 2048 - 11 && (member == null || member.hasPermissions(channel.asGuildChannel(), Permission.EMBED_LINKS, Permission.SEND_MESSAGES))) {
-            channel.sendMessage(MiscellaneousUtils.genBaseEmbed(0x00FF00, author, guild, "Evaluation", self, MiscellaneousUtils.now()).description("```java\n" + s + "```").build());
-        } else if (s.length() < 2000 - 11 && (member != null && member.hasPermissions(channel.asGuildChannel(), Permission.SEND_MESSAGES))) {
-            channel.sendMessage("```java\n" + s + "```");
+        COMMAND_LOGGER.info("Evaluator Input:\n{}\n\nEvaluator Output:\n{}\n", args, s);
+        if (s.length() < /*Since there is no variable to reference...*/ 2048 - 11) {
+            var e = genBaseEmbed(0x00FF00, author, guild, "Evaluation", catnip.selfUser(), now()).description("```java\n" + s + "```").build();
+            getSendableChannel(msg, VIEW_CHANNEL, SEND_MESSAGES, EMBED_LINKS).subscribe(c -> {
+                c.sendMessage(e);
+                if (c.isDM() && selfHasPermissions(msg, ADD_REACTIONS)) msg.react("📬");
+            });
+            LISTENER.getWebhook().executeWebhook(e);
         } else {
             var i = new MessageOptions().content("Evaluation Complete! See attached file.").addFile("Eval-" + System.currentTimeMillis() + ".log", s.getBytes(StandardCharsets.UTF_8));
-            if (member != null) catnip.cache().dmChannelAsync(author.idAsLong())
-                    .subscribe(dm -> dm.sendMessage(i), e -> {
-                        LISTENER.handleThrowable(e, msg);
-                        LISTENER.getWebhook().send(i).doOnError(e2 -> {
-                            COMMAND_LOGGER.error("Webhook died.", e2);
-                            System.out.println("Evaluator input:\n" + args + "\n\nEvaluator output:\n" + s + "\n");
-                        });
-                        if (member == null || member.hasPermissions(channel.asGuildChannel(), Permission.ADD_REACTIONS))
-                            msg.react("📬");
-                    });
-            else if (member != null && member.hasPermissions(channel.asGuildChannel(), Permission.SEND_MESSAGES, Permission.ATTACH_FILES)) {
-                channel.sendMessage(i);
-            } else {
-                LISTENER.getWebhook().send(i).subscribe(m -> {
-                }, e -> {
-                    COMMAND_LOGGER.error("Webhook died.", e);
-                    System.out.println("Evaluator input:\n" + args + "\n\nEvaluator output:\n" + s + "\n");
-                });
-                if (member == null || member.hasPermissions(channel.asGuildChannel(), Permission.ADD_REACTIONS))
-                    msg.react("📬");
-            }
+            getSendableChannel(msg, VIEW_CHANNEL, SEND_MESSAGES, ATTACH_FILES).subscribe(c -> {
+                c.sendMessage(i);
+                if (c.isDM() && selfHasPermissions(msg, ADD_REACTIONS)) msg.react("📬");
+            }, e -> LISTENER.handleThrowable(e, msg));
+            LISTENER.getWebhook().executeWebhook(i);
         }
     }
 

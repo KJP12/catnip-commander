@@ -43,6 +43,8 @@ public interface ICommand {
      * @param args Arguments as a singular {@link String}.
      * @throws Throwable When anything goes wrong.
      */
+    //TODO: Possibly return MessageOptions? This is breaking...
+    // If we do go with this, execute must be able to handle sending command responses
     void run(Message msg, String args) throws Throwable;
 
     /**
@@ -50,13 +52,7 @@ public interface ICommand {
      *
      * @param msg  Context as {@link Message}. Used for permission checks and whatever {@link #run(Message, String)} needs.
      * @param args Arguments as a singular {@link String}.
-     * @deprecated Replacing with consumer support to cut down on unneeded lines, with the bonus of added support of stuff.
      */
-    @Deprecated
-    default void execute(Message msg, String args) {
-        execute(msg, args, t -> getListener().handleThrowable(t, msg));
-    }
-
     default void execute(Message msg, String args, @Nonnull Consumer<Throwable> errorHandler) {
         long l = System.nanoTime();
         try {

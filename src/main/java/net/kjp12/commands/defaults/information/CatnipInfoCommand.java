@@ -3,11 +3,11 @@ package net.kjp12.commands.defaults.information;
 import com.mewna.catnip.entity.message.Message;
 import com.mewna.catnip.entity.message.MessageOptions;
 import com.mewna.catnip.shard.LifecycleState;
-import com.mewna.catnip.shard.manager.ShardManager;
 import com.mewna.catnip.util.CatnipMeta;
 import net.kjp12.commands.CommandSystemInfo;
 import net.kjp12.commands.abstracts.AbstractCommand;
 import net.kjp12.commands.abstracts.ICommandListener;
+import net.kjp12.commands.utils.MiscellaneousUtils;
 import net.kjp12.commands.utils.StringUtils;
 
 import java.nio.charset.StandardCharsets;
@@ -22,16 +22,25 @@ public class CatnipInfoCommand extends AbstractCommand {
     @Override
     public void run(Message msg, String args) {
         final var assess = new int[STATES.length];
-        var channel = msg.channel();
         var cn = msg.catnip();
         var sm = cn.shardManager();
         var ids = sm.shardIds();
-        var s = channel.isGuild() ? (msg.guildIdAsLong() >> 22) % sm.shardCount() : 0;
+        var s = msg.channel().isGuild() ? (msg.guildIdAsLong() >> 22) % sm.shardCount() : 0;
 
         var self = cn.selfUser();
         var sb = new StringBuilder("Catnip = ").append(CatnipMeta.VERSION).append("\nCommander = ").append(CommandSystemInfo.VERSION).append('\n').append(StringUtils.stringify(self, false)).append("\n\n");
 
-        for (int id : ids) append(sb, assess, sm, id, id == s);
+        for (int id : ids) {
+            var sh = sm.shard(id);
+            var lc = sh.lifecycleState();
+            assess[lc.ordinal()]++;
+            if (id == s) sb.append('+');
+            else if (lc != LifecycleState.CONNECTED && lc != LifecycleState.LOGGED_IN) sb.append('-');
+            sb.append("Shard: ").append(id)
+                    .append("; Status: ").append(lc)
+                    .append("; Heartbeat: ").append(sh.lastHeartbeatLatency())
+                    .append('\n');
+        }
         sb.append("\n\tAssessment:");
 
         int total = 0, failed = 0;
@@ -41,22 +50,13 @@ public class CatnipInfoCommand extends AbstractCommand {
                 total += assess[i];
                 if (STATES[i] != LifecycleState.CONNECTED && STATES[i] != LifecycleState.LOGGED_IN) failed += assess[i];
             }
-
-        if (sb.insert(0, "Total = " + total + "\nFailing = " + failed + "\nFailure = " + Math.round((double) failed / (double) total * 100) + "%\n").length() < 2000 - 29)
-            channel.sendMessage(sb.insert(0, "**__Shard Info__**```diff\n").append("```").toString());
-        else
-            channel.sendMessage(new MessageOptions().addFile("shardinfo.diff", sb.toString().getBytes(StandardCharsets.UTF_8)));
-    }
-
-    void append(StringBuilder $receiver, int[] assess, ShardManager sm, int id, boolean isCurrent) {
-        var s = sm.shardState(id).onErrorReturnItem(LifecycleState.DISCONNECTED).blockingGet();
-        assess[s.ordinal()]++;
-        if (isCurrent) $receiver.append('+');
-        else if (s != LifecycleState.CONNECTED && s != LifecycleState.LOGGED_IN) $receiver.append('-');
-        $receiver.append("Shard: ").append(id)
-                .append("; Status: ").append(s)
-                .append("; Heartbeat: ").append(sm.latency(id).onErrorReturnItem(-2L).blockingGet())
-                .append('\n');
+        sb.insert(0, "Total = " + total + "\nFailing = " + failed + "\nFailure = " + Math.round((double) failed / (double) total * 100) + "%\n");
+        MiscellaneousUtils.getSendableChannel(msg).subscribe(c -> {
+            if (sb.length() < 2000 - 29)
+                c.sendMessage(sb.insert(0, "**__Shard Info__**```diff\n").append("```").toString());
+            else
+                c.sendMessage(new MessageOptions().addFile("shardinfo.diff", sb.toString().getBytes(StandardCharsets.UTF_8)));
+        }, t -> LISTENER.handleThrowable(t, msg));
     }
 
     @Override

@@ -4,6 +4,9 @@ package net.kjp12.commands.utils
 
 import com.mewna.catnip.cache.view.CacheView
 import com.mewna.catnip.entity.builder.EmbedBuilder
+import com.mewna.catnip.entity.channel.DMChannel
+import com.mewna.catnip.entity.channel.MessageChannel
+import com.mewna.catnip.entity.channel.Webhook
 import com.mewna.catnip.entity.guild.Guild
 import com.mewna.catnip.entity.guild.Member
 import com.mewna.catnip.entity.message.Embed
@@ -15,6 +18,7 @@ import com.mewna.catnip.entity.util.ImageType
 import com.mewna.catnip.entity.util.Permission
 import com.mewna.catnip.entity.util.Permission.*
 import com.mewna.catnip.util.Utils
+import io.reactivex.Single
 import net.kjp12.commands.abstracts.ICommand
 import net.kjp12.commands.abstracts.ICommandListener
 import org.slf4j.LoggerFactory
@@ -47,10 +51,12 @@ fun genBaseEmbed(colour: Int, author: Any?, g: Guild?, title: String?, footer: A
     }
     var footer = footer
     if (title != null) eb.title(title)
-    if (footer == null && g != null)
-        footer = g.catnip().selfUser()
-    else if (footer is Member) footer = footer.catnip().cache().user(footer.id())
-    when (footer) {
+    if (footer == null && g != null) footer = g.catnip().selfUser()
+    if (footer != null) when (footer) {
+        is Member -> {
+            val u = footer.user()
+            eb.footer(u.username(), u.avatar)
+        }
         is User -> eb.footer(footer.username(), footer.avatar)
         is Embed.Footer -> eb.footer(footer)
         else -> eb.footer(footer.toString(), null)
@@ -85,7 +91,7 @@ fun attemptSend(listener: ICommandListener, t: Throwable?, msg: Message?): UUID 
     return uid
 }
 
-fun sendError(wc: WebhookClient?, stack: Throwable, uid: UUID, msg: Message?) {
+fun sendError(wc: Webhook?, stack: Throwable, uid: UUID, msg: Message?) {
     if (wc == null) return
     val eb = EmbedBuilder().color(0xAA1200).title("Something has failed").footer("Error UID - $uid", null).timestamp(now)
     if (msg != null) {
@@ -100,7 +106,7 @@ fun sendError(wc: WebhookClient?, stack: Throwable, uid: UUID, msg: Message?) {
     val sw = StringWriter()
     val pw = PrintWriter(sw)
     stack.printStackTrace(pw)
-    wc.send(MessageOptions().embed(eb.build()).attachString("$uid-stack", sw.toString()))
+    wc.executeWebhook(MessageOptions().embed(eb.build()).attachString("$uid-stack", sw.toString()))
 }
 
 fun MessageOptions.attachString(name: String, content: String) = addFile(name, content.toByteArray(StandardCharsets.UTF_8))
@@ -117,11 +123,29 @@ fun ICommandListener.getStackedPrefix(guild: Guild?): String {
 
 fun Message.canEmbed() = !channel().isGuild || guild()!!.selfMember().hasPermissions(channel().asGuildChannel(), EMBED_LINKS)
 
-fun Message.selfHasPermissions(perm: Permission) = selfHasPermissions(EnumSet.of(perm))
+fun Message?.selfHasPermissions(perm: Permission) = selfHasPermissions(EnumSet.of(perm))
 
-fun Message.selfHasPermissions(first: Permission, vararg rest: Permission) = selfHasPermissions(EnumSet.of(first, *rest))
+fun Message?.selfHasPermissions(first: Permission, vararg rest: Permission) = selfHasPermissions(EnumSet.of(first, *rest))
 
-fun Message.selfHasPermissions(permissions: EnumSet<Permission>) = guild()?.selfMember()?.hasPermissions(channel().asGuildChannel(), permissions) ?: !guildRequiredPermissions.any { permissions.contains(it) }
+fun Message?.selfHasPermissions(permissions: EnumSet<Permission>) = this != null && (guild()?.selfMember()?.hasPermissions(channel().asGuildChannel(), permissions) ?: !guildRequiredPermissions.any { permissions.contains(it) })
+
+@JvmOverloads
+fun Message?.getSendableChannel(options: MessageOptions? = null): Single<out MessageChannel> {
+    val e = options?.embed() != null
+    val a = options?.hasFiles() == true
+    return getSendableChannel(
+        if (e && a) EnumSet.of(VIEW_CHANNEL, SEND_MESSAGES, ATTACH_FILES, EMBED_LINKS)
+        else if (e) EnumSet.of(VIEW_CHANNEL, SEND_MESSAGES, EMBED_LINKS)
+        else if (a) EnumSet.of(VIEW_CHANNEL, SEND_MESSAGES, ATTACH_FILES)
+        else EnumSet.of(VIEW_CHANNEL, SEND_MESSAGES)
+    )
+}
+
+fun Message?.getSendableChannel(first: Permission) = getSendableChannel(EnumSet.of(first))
+
+fun Message?.getSendableChannel(first: Permission, vararg rest: Permission) = getSendableChannel(EnumSet.of(first, *rest))
+
+fun Message?.getSendableChannel(permissions: EnumSet<Permission>): Single<out MessageChannel> = if (this == null) Single.error(NullPointerException("Message")) else if (selfHasPermissions(permissions)) Single.just(channel()) else author().dmChannel
 
 fun <T> Callable<T>.getOrDefault(def: Supplier<T>) = try {
     call()
@@ -142,6 +166,18 @@ val User.avatar: String
         return effectiveAvatarUrl(ImageOptions().type(if (a == null || !a.startsWith("a_")) ImageType.PNG else ImageType.GIF).size(1024))
     }
 
+val User.dmChannel: Single<DMChannel>
+    get() {
+        val cache = catnip().cache().dmChannels().getById(idAsLong())
+        return if (cache != null) Single.just(cache) else createDM()
+    }
+
+val Member.dmChannel: Single<DMChannel>
+    get() = user().dmChannel
+
+val Message.dmChannel: Single<DMChannel>
+    get() = if (channel().isDM) Single.just(channel().asDMChannel()) else author().dmChannel
+
 val now: OffsetDateTime
     @JvmName("now") get() = OffsetDateTime.now(Clock.systemUTC())
 
@@ -150,4 +186,7 @@ val <T> CacheView<T>.random: T
 
 val guildRequiredPermissions: EnumSet<Permission>
     get() = EnumSet.of(CREATE_INSTANT_INVITE, KICK_MEMBERS, BAN_MEMBERS, ADMINISTRATOR, MANAGE_CHANNELS, MANAGE_GUILD, VIEW_AUDIT_LOG, MANAGE_MESSAGES, MUTE_MEMBERS, DEAFEN_MEMBERS, MOVE_MEMBERS, PRIORITY_SPEAKER, CHANGE_NICKNAME, MANAGE_NICKNAME, MANAGE_ROLES, MANAGE_WEBHOOKS, MANAGE_EMOJI)
+
+val generalPermissions: EnumSet<Permission>
+    get() = EnumSet.of(ADD_REACTIONS, VIEW_CHANNEL, SEND_MESSAGES, SEND_TTS_MESSAGES, EMBED_LINKS, ATTACH_FILES, READ_MESSAGE_HISTORY, USE_EXTERNAL_EMOJI)
 //</editor-fold>

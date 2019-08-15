@@ -14,6 +14,8 @@ public interface IViewable extends ICommand {
      * @param msg Context as {@link Message}
      * @throws Throwable        When anything goes wrong.
      */
+    //TODO: Possibly return MessageOptions? This is breaking...
+    // If we do go with this, execute must be able to handle sending command responses
     void view(Message msg) throws Throwable;
 
     /**

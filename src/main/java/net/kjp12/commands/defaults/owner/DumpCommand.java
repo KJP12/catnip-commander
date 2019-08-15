@@ -15,7 +15,7 @@ public class DumpCommand extends AbstractCommand {
         var s = args.split(" ", 2);
         var ic = LISTENER.getCommand(s[0]);
         if (ic == null || ic.equals(this))
-            msg.channel().sendMessage("Cannot dump the command " + (ic == null ? "null pointer" : ic.getFirstAliases()));
+            MiscellaneousUtils.getSendableChannel(msg).subscribe(c -> c.sendMessage("Cannot dump the command " + (ic == null ? "null pointer" : ic.getFirstAliases())));
         else ic.execute(msg, s.length > 1 ? s[1] : "", t -> MiscellaneousUtils.attemptSend(LISTENER, t, msg));
     }
 

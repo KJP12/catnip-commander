@@ -33,7 +33,10 @@ public final class CategorySystem {
     private final List<Category> CATEGORIES = new LinkedList<>();
 
     public CategorySystem() {
-        SYSTEM_CATEGORY = new Category("system", null, true);
+        SYSTEM_CATEGORY = new Category("system", (msg, ac, t) -> {
+            var c = msg.channel();
+            return !c.isGuild() || msg.guild().selfMember().hasPermissions(c.asGuildChannel(), Collections.singletonList(Permission.SEND_MESSAGES));
+        }, true);
     }
 
     public CategorySystem(CategorySystem parent) {

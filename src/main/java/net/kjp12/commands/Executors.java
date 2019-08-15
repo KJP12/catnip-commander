@@ -1,8 +1,7 @@
 package net.kjp12.commands;
 
-import io.netty.util.collection.LongCollections;
-import io.netty.util.collection.LongObjectHashMap;
-import io.netty.util.collection.LongObjectMap;
+import com.koloboke.collect.map.LongObjMap;
+import com.koloboke.collect.map.hash.HashLongObjMaps;
 import net.kjp12.commands.utils.GlobalVariables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -13,9 +12,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Arrays;
-import java.util.Optional;
-import java.util.StringTokenizer;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
@@ -25,8 +22,8 @@ public final class Executors extends ThreadGroup {
     private static final File CURRENT_DIR = new File(".");
     private static final Logger LOGGER = LoggerFactory.getLogger(Executors.class);
     private static final AtomicLong INCREMENT = new AtomicLong(0);
-    private final LongObjectHashMap<ProcessInstance> INSTANCES_ = new LongObjectHashMap<>();
-    public final LongObjectMap<ProcessInstance> INSTANCES = LongCollections.unmodifiableMap(INSTANCES_);
+    private final LongObjMap<ProcessInstance> INSTANCES_ = HashLongObjMaps.newMutableMap();
+    public final Map<Long, ProcessInstance> INSTANCES = Collections.unmodifiableMap(INSTANCES_);
 
     private Executors() {
         super("Executors");
@@ -49,10 +46,9 @@ public final class Executors extends ThreadGroup {
                 Reader reader = null;
                 try {
                     reader = new InputStreamReader(is, StandardCharsets.UTF_8);
-                    char[] charBuffer = new char[64];//8192];
+                    char[] charBuffer = new char[8192];
                     //noinspection StatementWithEmptyBody
                     while (dar.push(charBuffer, reader.read(charBuffer))) ;
-                    //while (appendErr(charBuffer, reader.read(charBuffer))) ;
                 } catch (IOException ioe) {
                     throw new RuntimeException(ioe);
                 } finally {
@@ -101,6 +97,7 @@ public final class Executors extends ThreadGroup {
                 //Symbolically closes the stream.
                 synchronized (lock) {
                     closed = true;
+                    if (wi > 0) func.run(arr, true, ri, wi, 0);
                     lock.notifyAll();
                 }
                 synchronized (this) {
@@ -115,7 +112,7 @@ public final class Executors extends ThreadGroup {
                 System.arraycopy(tmp, 0, arr, wi, l);
                 wi += l;
                 updateSkip(-l);
-                if (func != null) func.run(arr, closed, ri, wi, a > 0 ? a : 0);
+                if (func != null) func.run(arr, closed, ri, wi, Math.max(a, 0));
                 lock.notifyAll();
             }
             return true;
@@ -257,12 +254,17 @@ public final class Executors extends ThreadGroup {
 
         @Override
         public synchronized void run(char[] buf, boolean closed, int ri, int wi, int m) {
-            for (int i = Math.max(si -= m, 0); i < wi; i++) {
+            int i;
+            for (i = Math.max(si -= m, 0); i < wi; i++) {
                 if (buf[i] == '\n') {
                     GlobalVariables.STDOUT_WRITER.append(name).append(' ').write(buf, si, i - si);
                     GlobalVariables.STDOUT_WRITER.append('\n').flush();
                     si = i + 1;
                 }
+            }
+            if (closed) {
+                GlobalVariables.STDOUT_WRITER.append(name).append(' ').write(buf, si, i - si);
+                GlobalVariables.STDOUT_WRITER.append('\n').flush();
             }
         }
     }
@@ -271,7 +273,8 @@ public final class Executors extends ThreadGroup {
         private static final int SIZE = 4 << 20;
         public final long PID, ns = System.nanoTime();
         public final Process PROCESS;
-        private final ProcessHandle.Info INFO;
+        private ProcessHandle handle; //If this doesn't exist, assume no native support and use fallback info behaviour.
+        private ProcessHandle.Info info; //This will act as cache, changing behaviour slightly; may hopefully remove "/usr/bin/bash /path/to/executable" behaviour on *NIX.
         private final DynamicArrayReader OUT_S = new DynamicArrayReader(SIZE), ERR_S = new DynamicArrayReader(SIZE);
         private final Thread DEATH, ERR_T, OUT_T;
         private volatile long nsd = 0;
@@ -282,16 +285,15 @@ public final class Executors extends ThreadGroup {
             var cmdarray = new String[st.countTokens()];
             for (int i = 0; st.hasMoreTokens(); ++i) cmdarray[i] = st.nextToken();
             PROCESS = RT.exec(cmdarray, null, dir);
-            ProcessHandle.Info $i = null;
             long $pid = 0;
             try {
-                var h = PROCESS.toHandle();
-                $pid = h.pid();
-                $i = h.info();
+                handle = PROCESS.toHandle();
+                $pid = handle.pid();
+                info = handle.info();
             } catch (UnsupportedOperationException uoe) {
                 LOGGER.warn("Couldn't use JVM Process Info; generating own using available information.", uoe);
                 //We'll just make our own in this case.
-                $i = new ProcessHandle.Info() {
+                info = new ProcessHandle.Info() {
                     private final String[] ARGS = Arrays.copyOfRange(cmdarray, 1, cmdarray.length);
                     private final String cmd = cmdarray[0], user = System.getProperty("user.name");
 
@@ -328,7 +330,6 @@ public final class Executors extends ThreadGroup {
                     }
                 };
             } finally {
-                INFO = $i;
                 if ($pid == 0) {
                     $pid = INCREMENT.get();
                     while (INSTANCES_.containsKey($pid)) $pid++;
@@ -394,7 +395,9 @@ public final class Executors extends ThreadGroup {
         }
 
         public ProcessHandle.Info getInfo() {
-            return INFO;
+            if (handle == null) return info;
+            var i = handle.info();
+            return i.command().isEmpty() ? info : (info = i);
         }
     }
 }

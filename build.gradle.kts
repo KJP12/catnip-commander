@@ -1,3 +1,4 @@
+import org.ajoberstar.grgit.Grgit
 import org.apache.tools.ant.filters.ReplaceTokens
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URI
@@ -6,13 +7,18 @@ plugins {
     `java-library`
     maven
     `maven-publish`
-    kotlin("jvm") version "1.3.40"
+    kotlin("jvm") version "1.3.41"
+    id("org.ajoberstar.grgit").version("3.1.1")
+    id("org.ajoberstar.reckon").version("0.11.0")
 }
 
-val ver = Version("1", "0", "0", env("BUILD_NUMBER") ?: env("GIT_COMMIT")?.substring(0..6) ?: "DEV")
+val grgit = Grgit.open(mapOf("dir" to rootDir))
+val ver = Version("1", "0", "0", env("BUILD_NUMBER") ?: env("GIT_COMMIT")?.substring(0..6) ?: grgit.head()?.abbreviatedId ?: "DEV")
 
 group = "net.kjp12"
 version = ver
+
+println("Welcome to $group:$name:$ver")
 
 repositories {
     mavenCentral()
@@ -20,13 +26,13 @@ repositories {
 }
 
 dependencies {
-    api("com.mewna:catnip:346e95657")
+    api("com.mewna:catnip:d849df4")
     api(kotlin("stdlib-jdk8"))
     testImplementation("ch.qos.logback:logback-classic:1.2.3")
     testCompile("org.codehaus.groovy", "groovy-jsr223", "3.0.0-beta-1", classifier = "indy")
     testCompile("junit", "junit", "4.12")
-    testCompile("org.junit.jupiter", "junit-jupiter-api", "5.4.1")
-    testCompile("org.junit.jupiter", "junit-jupiter-engine", "5.4.1")
+    testCompile("org.junit.jupiter", "junit-jupiter-api", "5.5.0")
+    testCompile("org.junit.jupiter", "junit-jupiter-engine", "5.5.0")
 }
 
 configure<JavaPluginConvention> {
@@ -72,14 +78,29 @@ tasks {
         dependsOn(sourcesForRelease)
     }.get()
     "build" {
-        dependsOn(jar, sourcesJar)
+        dependsOn("test", jar, sourcesJar)
     }
     withType<Test> {
         useJUnitPlatform()
     }
+    /*register<Task>("gitpatch") {
+        //All of these must run successfully for the tag to be allowed to be created.
+        dependsOn("compileKotlin", "compileJava", "compileTestKotlin", "compileTestJava", "test", "check")
+        doLast {
+            val bytes = Files.readAllBytes(NioPath.of(project.rootDir.toString(), "build.gradle.kts"))
+            val verInfoStart = "// <versionInfo>\n".toByteArray()
+            val verInfoEnd = "// </versionInfo>\n".toByteArray()
+            //This is to know where in the code it is exactly.
+            val s = Bytes.indexOf(bytes, verInfoStart)
+            val e = Bytes.indexOf(bytes, verInfoEnd)
+            val startingBytes = bytes.copyOfRange(0, s + verInfoStart.size)
+            val midBytes = bytes.copyOfRange(s + verInfoStart.size + 1, e)
+            val endingBytes = bytes.copyOfRange(e, bytes.size)
+            //GIT Releases
+        }
+    }*/
+
 }
-
-
 
 fun env(e: String): String? {
     val s = System.getenv(e)

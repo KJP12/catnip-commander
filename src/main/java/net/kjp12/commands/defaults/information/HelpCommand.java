@@ -1,24 +1,27 @@
 package net.kjp12.commands.defaults.information;
 
 import com.mewna.catnip.entity.message.Message;
-import io.reactivex.functions.BiConsumer;
+import com.mewna.catnip.entity.util.Permission;
 import net.kjp12.commands.CategorySystem;
 import net.kjp12.commands.abstracts.AbstractCommand;
+import net.kjp12.commands.abstracts.IBotPermissionCommand;
 import net.kjp12.commands.abstracts.ICommandListener;
 import net.kjp12.commands.abstracts.IViewable;
 import net.kjp12.commands.utils.MiscellaneousUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.TreeMap;
 import java.util.TreeSet;
 
 import static net.kjp12.commands.utils.StringUtils.splitByPredicate;
 import static net.kjp12.commands.utils.StringUtils.stringify;
 
-public class HelpCommand extends AbstractCommand implements IViewable {
+public class HelpCommand extends AbstractCommand implements IViewable, IBotPermissionCommand {
     private final String description;
 
+    //TODO: Allow dynamic descriptions
     public HelpCommand(ICommandListener icl, String desc) {
         super(icl);
         description = desc;
@@ -30,13 +33,18 @@ public class HelpCommand extends AbstractCommand implements IViewable {
 
     @Override
     public void view(Message msg) {
+        //TODO: Modularize help
+        //TODO: Allow for context sources to be GuildChannel and Member. Both null == default permissions.
         var channel = msg.channel();
-        channel.sendMessage("Generating Help...").subscribe((BiConsumer<? super Message, ? super Throwable>) (m, t) -> {
+        channel.sendMessage("Generating Help...").subscribe(m -> {
             var catSys = LISTENER.getCategorySystem();
             var catList = catSys.getCategories();
             var allowed = new ArrayList<CategorySystem.Category>(catList.size());
             if (catSys.SYSTEM_CATEGORY.checkPermission(msg, this, false)) allowed.add(catSys.SYSTEM_CATEGORY);
-            else m.edit("Command system is locked down. How did you execute this?");
+            else {
+                m.edit("Command system is locked down. How did you execute this?");
+                throw new AssertionError("Unexpected execution of help during command system lock down");
+            }
             var catMap = new TreeMap<String, String>(String.CASE_INSENSITIVE_ORDER);
 
             for (var cat : catList)
@@ -54,14 +62,13 @@ public class HelpCommand extends AbstractCommand implements IViewable {
                 var cmds = cat.getCommands();
                 var sortedCmds = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
                 boolean noError = cat.checkPermission(m, this, false);
-                cmd:
                 for (var cmd : cmds) {
                     if (cmd.isHidden() || !allowed.containsAll(cmd.getCategoryList())) continue;
 
                     try {
                         if (cmd.checkRuntimePermission(msg, false))
                             sortedCmds.add((noError && cmd.checkRuntimePermission(m, false)) ? cmd.getFirstAliases() : cmd.getFirstAliases() + "*");
-                    } catch (Throwable cmdt) {
+                    } catch (Throwable t) {
                         sortedCmds.add(cmd.getFirstAliases() + " e");
                         //TODO: LISTENER#handleThrowable(String reason, Throwable cause, Message msg)
                         LISTENER.handleThrowable(new Exception("Command " + stringify(cmd) + " threw an error!", t), msg);
@@ -82,7 +89,7 @@ public class HelpCommand extends AbstractCommand implements IViewable {
                 }
             }
             if (isEmbed) {
-                var eb = MiscellaneousUtils.genBaseEmbed(0x46AF2C, msg.author(), msg.guild(), "Help Menu", null, msg.creationTime());
+                var eb = MiscellaneousUtils.genBaseEmbed(0x46AF2C, msg.author(), msg.guild(), "Help Menu", msg.catnip().selfUser(), msg.creationTime());
                 if (description != null) eb.description(description);
                 for (var ess : catMap.entrySet()) eb.field(ess.getKey(), ess.getValue(), false);
                 m.edit(eb.build());
@@ -94,11 +101,11 @@ public class HelpCommand extends AbstractCommand implements IViewable {
                     sb.append(ess.getKey()).append('\n').append(ess.getValue()).append("\n\n");
                 m.edit(sb.substring(0, sb.length() - 2));
             }
-        });
+        }, t -> LISTENER.handleThrowable(t, msg));
     }
 
     @Override
-    public void run(Message msg, String args) throws Throwable {
+    public void run(Message msg, String args) {
         var cmd = LISTENER.getCommand(splitByPredicate(args, Character::isSpaceChar, 0, 2)[0]);
         var chan = msg.channel();
         if (cmd != null) chan.sendMessage(cmd.toMessage(msg));
@@ -119,5 +126,10 @@ public class HelpCommand extends AbstractCommand implements IViewable {
     public String toDescription(Message msg) {
         var pre = MiscellaneousUtils.getStackedPrefix(LISTENER, msg.guild());
         return "Returns help to those who need it.\n\n**__Usage__**:\n`" + pre + "help [command]` - Command-specific Help\n`" + pre + "help` - Lists all commands\n\n`Command*` - Bot-side Permission Error\n`Command e` - Permission check thrown an error";
+    }
+
+    @Override
+    public EnumSet<Permission> requiredRuntimeBotPermissions() {
+        return EnumSet.of(Permission.SEND_MESSAGES);
     }
 }

@@ -14,7 +14,6 @@ import net.kjp12.commands.defaults.owner.DumpCommand;
 import net.kjp12.commands.defaults.owner.EvaluatorCommand;
 import net.kjp12.commands.defaults.owner.GetInviteCommand;
 import net.kjp12.commands.defaults.owner.ProcessCommand;
-import net.kjp12.commands.utils.WebhookClient;
 
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;
@@ -43,13 +42,11 @@ public class MainTest {
                 tmp = (shards + nodes - 1) / nodes,
                 offset = tmp * node;
         options.shardManager(new DefaultShardManager(IntStream.range(offset, offset + (offset + tmp > shards ? shards - offset : tmp))));
+        options.presence(Presence.of(Presence.OnlineStatus.DND, Presence.Activity.of("Command System Debugging", Presence.ActivityType.PLAYING)));
         var catnip = Catnip.catnip(options);
         var cl = new CommandListener(g -> "cl!");
         cl.CATEGORY_SYSTEM.buildCategory("owner only", (msg, ic, t) -> msg.author().equals(owner));
-        if (args.length >= 8) {
-            cl.setWebhook(new WebhookClient(catnip, args[6], args[7]));
-        } else
-            cl.setWebhook(new WebhookClient(catnip, "503150567527284736", "6qIOWd3frKSkcjI9brPTBUutG4KIhaNPFhzD9s1BvYbhLWCzYZEdIFILhMT3lxigGiJC")) /*effectively no-op*/;
+        cl.setWebhook(args.length >= 8 ? catnip.parseWebhook(args[6], args[7]) : catnip.parseWebhook("503150567527284736", "6qIOWd3frKSkcjI9brPTBUutG4KIhaNPFhzD9s1BvYbhLWCzYZEdIFILhMT3lxigGiJC"));
         new DumpCommand(cl);
         new HelpCommand(cl);
         new CatnipInfoCommand(cl);
@@ -57,9 +54,18 @@ public class MainTest {
         new GetInviteCommand(cl);
         new ProcessCommand(cl);
         new EvaluatorCommand(cl, EvaluatorCommand.SEM.getEngineByName("groovy"));
-        catnip.presence(Presence.OnlineStatus.DND, "Command System Debugging", Presence.ActivityType.PLAYING, null);
-        catnip.observable(DiscordEvent.MESSAGE_CREATE).forEach(cl::onMessageReceived);
+        catnip.observable(DiscordEvent.MESSAGE_CREATE).subscribe(cl::onMessageReceived);
         catnip.rest().user().getCurrentApplicationInformation().subscribe(ai -> owner = ai.owner());
         catnip.connect();
+        new Thread(() -> {
+            while (true) try {
+                synchronized (catnip) {
+                    catnip.wait();
+                }
+            } catch (Throwable t) {
+                if (t instanceof ThreadDeath) throw (ThreadDeath) t;
+                t.printStackTrace();
+            }
+        }).start();
     }
 }

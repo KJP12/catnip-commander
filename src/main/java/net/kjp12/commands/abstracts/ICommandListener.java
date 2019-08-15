@@ -1,17 +1,18 @@
 package net.kjp12.commands.abstracts;
 
+import com.mewna.catnip.entity.channel.Webhook;
 import com.mewna.catnip.entity.guild.Guild;
 import com.mewna.catnip.entity.message.Message;
+import com.mewna.catnip.entity.util.Permission;
 import net.kjp12.commands.CategorySystem;
 import net.kjp12.commands.utils.MiscellaneousUtils;
-import net.kjp12.commands.utils.WebhookClient;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
-import java.util.UUID;
+import java.util.function.Consumer;
 
-import static net.kjp12.commands.utils.MiscellaneousUtils.attemptSend;
+import static net.kjp12.commands.utils.MiscellaneousUtils.*;
 
 
 public interface ICommandListener {
@@ -34,7 +35,7 @@ public interface ICommandListener {
     /**
      * @return WebhookClient within the Command Listener.
      */
-    WebhookClient getWebhook();
+    Webhook getWebhook();
 
     /**
      * Adds a command to this command system.
@@ -54,7 +55,7 @@ public interface ICommandListener {
     ICommand getCommand(String alias);
 
     /**
-     * Starts an {@link ICommand} instance via calling {@link ICommand#execute(Message, String)}.
+     * Starts an {@link ICommand} instance via calling {@link ICommand#execute(Message, String, Consumer)}.
      * The specific implementation may execute on the spot or dump to an {@link java.util.concurrent.ExecutorService}.
      *
      * @param ac   The command to execute.
@@ -73,54 +74,9 @@ public interface ICommandListener {
      * @param msg   Context as {@link Message}. Gives all the information like the raw message, who ran it, etc.
      */
     default void handleThrowable(Throwable cause, @Nullable Message msg) {
-        //no more special case handling.
-        /*if (cause instanceof CommandException) {
-            handleCmdException((CommandException) cause, msg);
-            return;
-        }*/
-        cause.printStackTrace();
-        if (msg != null) msg.react("⛔");
-        UUID uid = attemptSend(this, cause, msg);
-        msg.channel().sendMessage("Something failed; ``" + cause.getMessage() + "``; Error UID: `" + uid + "`");
+        if (selfHasPermissions(msg, Permission.ADD_REACTIONS)) msg.react("⛔");
+        var uid = attemptSend(this, cause, msg);
+        getSendableChannel(msg).subscribe(c -> c.sendMessage("⛔ ``Error " + uid + ": " + cause.getMessage() + "``"));
         LOGGER.error("Error UID: " + uid, cause);
-    }
-
-    /**
-     * @deprecated Use {@link #handleThrowable(Throwable, Message)} or don't manually throw user-oriented exceptions!
-     */
-    //signature has been changed to a lower level due to the removal of CommandException.
-    @Deprecated(forRemoval = true)
-    default void handleCmdException(RuntimeException ce, @Nullable Message msg) {
-        handleThrowable(ce, msg); //It is an error to use this.
-        /*var hook = getWebhook();
-        var cause = ce.getCause();
-        var message = ce.getJDAMessage();
-        if (cause != null) {
-            if (msg != null) msg.react("⛔");
-            var uid = attemptSend(this, cause, msg);
-            sendMessage(msg, s -> {
-                var author = msg.author();
-                s.sendMessage(MiscellaneousUtils.genBaseEmbed(0xaa1200, author, msg.guild(), "Something has failed", "UID - " + uid, msg.creationTime())
-                        .description("The error has been sent to the owner.")
-                        .field("Cause", ce.toString(), false).build()).subscribe(m -> {
-                }, e -> handleThrowable(e, null));
-                if (message != null) s.sendMessage(message);
-            }, t -> {
-                attemptSend(this, t, msg);
-                hook.send(message);
-            });
-        } else if (message != null) {
-            if (msg == null) hook.send(message);
-            else sendMessage(msg, mc -> mc.sendMessage(message), t -> {
-                attemptSend(this, t, msg);
-                hook.send(message);
-            });
-        } else {
-            var e = MiscellaneousUtils.genBaseEmbed(0xaa1200, msg != null ? msg.author() : null, msg != null ? msg.guild() : null, "Something has failed", null, msg == null ? MiscellaneousUtils.now() : msg.creationTime()).description(ce.getMessage()).build();
-            sendMessage(msg, mc -> mc.sendMessage(e), t -> {
-                attemptSend(this, t, msg);
-                hook.send(e);
-            });
-        }*/
     }
 }
