@@ -26,10 +26,10 @@ repositories {
 }
 
 dependencies {
-    api("com.mewna:catnip:d849df4")
+    api("com.mewna:catnip:f3aed18a24688910184d2f3428aa574a11f395dc")
     api(kotlin("stdlib-jdk8"))
     testImplementation("ch.qos.logback:logback-classic:1.2.3")
-    testCompile("org.codehaus.groovy", "groovy-jsr223", "3.0.0-beta-1", classifier = "indy")
+    testCompile("org.codehaus.groovy", "groovy-jsr223", "3.0.0-beta-3", classifier = "indy")
     testCompile("junit", "junit", "4.12")
     testCompile("org.junit.jupiter", "junit-jupiter-api", "5.5.0")
     testCompile("org.junit.jupiter", "junit-jupiter-engine", "5.5.0")
