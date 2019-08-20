@@ -30,10 +30,10 @@ public class NullWebhook implements Webhook {
         throw new UnsupportedOperationException("Null Webhook Impl");
     }
 
-    @Nonnull
+    @Nullable
     @Override
     public User user() {
-        throw new UnsupportedOperationException("Null Webhook Impl");
+        return null;
     }
 
     @Nullable

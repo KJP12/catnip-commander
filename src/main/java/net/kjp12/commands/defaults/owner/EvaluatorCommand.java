@@ -41,7 +41,7 @@ public class EvaluatorCommand extends AbstractCommand {
         var shardManager = catnip.shardManager();
         engine.put("api", catnip);
         engine.put("catnip", catnip);
-        engine.put("shard", shardManager.shard(guild == null ? 0 : (int) (guild.idAsLong() >> 22L % shardManager.shardCount()))); //Would return a shard instance, but there isn't a shard-view implementation, so number will suffice.
+        engine.put("shard", shardManager.shard(guild == null ? 0 : (int) ((guild.idAsLong() >> 22L) % shardManager.shardCount()))); //Would return a shard instance, but there isn't a shard-view implementation, so number will suffice.
         engine.put("channel", channel);
         engine.put("message", msg);
         engine.put("msg", msg);

@@ -26,7 +26,7 @@ repositories {
 }
 
 dependencies {
-    api("com.mewna:catnip:f3aed18a24688910184d2f3428aa574a11f395dc")
+    api("com.mewna:catnip:dd10487")
     api(kotlin("stdlib-jdk8"))
     testImplementation("ch.qos.logback:logback-classic:1.2.3")
     testCompile("org.codehaus.groovy", "groovy-jsr223", "3.0.0-beta-3", classifier = "indy")
@@ -65,14 +65,14 @@ tasks {
     }
     withType<KotlinCompile> {
         kotlinOptions {
-            jvmTarget = "1.8"
+            jvmTarget = "11"
         }
     }
     val jar = getByName<Jar>("jar") {
-        manifest.attributes["Implementation-Version"] = version
+        manifest.attributes["Implementation-Version"] = archiveVersion.orNull
     }
     val sourcesJar = register<Jar>("sourcesJar") {
-        classifier = "sources"
+        archiveClassifier.set("sources")
         from("src/main/java") { exclude("**/CommanderInfo.java") }
         from(sourcesForRelease.destinationDir)
         dependsOn(sourcesForRelease)
