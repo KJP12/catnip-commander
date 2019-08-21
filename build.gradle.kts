@@ -26,7 +26,7 @@ repositories {
 }
 
 dependencies {
-    api("com.mewna:catnip:dd10487")
+    api("com.mewna:catnip:ca80960")
     api(kotlin("stdlib-jdk8"))
     testImplementation("ch.qos.logback:logback-classic:1.2.3")
     testCompile("org.codehaus.groovy", "groovy-jsr223", "3.0.0-beta-3", classifier = "indy")
