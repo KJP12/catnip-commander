@@ -23,6 +23,7 @@ fun String.indexOf(t: IntPredicate, start: Int = 0): Int {
     return if (i == length) -1 else i
 }
 
+@JvmOverloads
 fun String.countInstances(t: (Char) -> Boolean, start: Int = 0): Int {
     if (isEmpty() || start >= length) return 0
     var c = 0

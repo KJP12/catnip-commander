@@ -147,12 +147,26 @@ fun Message?.getSendableChannel(first: Permission, vararg rest: Permission) = ge
 
 fun Message?.getSendableChannel(permissions: EnumSet<Permission>): Single<out MessageChannel> = if (this == null) Single.error(NullPointerException("Message")) else if (selfHasPermissions(permissions)) Single.just(channel()) else author().dmChannel
 
-fun <T> Callable<T>.getOrDefault(def: Supplier<T>) = try {
+/**
+ * Attempts to fetch the output of the [callable][Callable], falling back to the supplier if this fails.
+ *
+ * @receiver The [Callable] you wish to fetch the output of.
+ * @param supplier The fallback [Supplier].
+ * In Kotlin, using Any or Object for type T will require you to use <code>getOrDefault(supplier = [Supplier] {any})</code>
+ * You also must use [Supplier] {} as the parameter due to how Kotlin lambda works.
+ * */
+fun <T> Callable<T>.getOrDefault(supplier: Supplier<T>) = try {
     call()
 } catch (e: Exception) {
-    def.get()
+    supplier.get()
 }
 
+/**
+ * Attempts to fetch the output of the [callable][Callable], falling back to the supplier if this fails.
+ *
+ * @receiver The [callable][Callable] you wish to fetch the output of.
+ * @param t The predefined fallback. You generally don't want this if it's heavy to compute.
+ * */
 fun <T> Callable<T>.getOrDefault(t: T) = try {
     call()
 } catch (e: Exception) {

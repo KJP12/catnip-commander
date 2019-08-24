@@ -1,19 +1,20 @@
 package net.kjp12.commands.utils
 
+import org.junit.jupiter.api.Assertions.assertArrayEquals
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
-import java.util.*
 import java.util.function.IntPredicate
 
 class StringUtilsTest {
-    private val str = "This should only count\r5 instances"
+    private val str = "This should only count\r5 instances."
 
-    @Test
-    fun countInstances() {
-        var c = str.countInstances({ Character.isWhitespace(it) })
-        assert(c == 5) { "Expected 5, got $c" }
-        c = str.countInstances({ Character.isWhitespace(it) }, 10)
-        assert(c == 4) { "Expected 5 after 10 chars skipped, got $c" }
-    }
+    @Test fun countInstancesNoSkip() = assertEquals(5, str.countInstances({ Character.isWhitespace(it) }))
+
+    @Test fun countInstanceSkip4() = assertEquals(5, str.countInstances({ Character.isWhitespace(it) }, 4))
+
+    @Test fun countInstanceSkip5() = assertEquals(4, str.countInstances({ Character.isWhitespace(it) }, 5))
+
+    @Test fun countInstanceSkip10() = assertEquals(4, str.countInstances({ Character.isWhitespace(it) }, 10))
 
     @Test
     fun indexOf() {
@@ -22,31 +23,73 @@ class StringUtilsTest {
         var p = 0
         while (p > -1) {
             p = str.indexOf(IntPredicate { Character.isWhitespace(it.toChar()) }, p + 1)
-            assert(arr[i] == p) { "Expected ${arr[i]} @ $i, got $p" }
+            assertEquals(arr[i], p) { "Expected ${arr[i]} @ $i of $str" }
             i++
         }
     }
 
     @Test
     fun splitByPredicate() {
-        val str = "This should split into\r6 strings."
-        val arr = arrayOf("This", "should", "split", "into", "6", "strings.")
+        val arr = arrayOf("This", "should", "only", "count", "5", "instances.")
         val tmp = str.splitByPredicate(IntPredicate { Character.isWhitespace(it.toChar()) })
-        assert(tmp.size == 6) { "Expected length of 6, got ${tmp.size}" }
-        assert(Arrays.equals(arr, tmp)) { "Expected ${Arrays.toString(arr)}, got ${Arrays.toString(tmp)}" }
+        assertArrayEquals(arr, tmp)
     }
 
     @Test
-    fun stringify() {
-        var tmp = null.stringify()
-        assert(tmp == "null") { "Expected \"null\", got \"$tmp\"" }
-        var obj: Any = Object()
-        tmp = obj.stringify()
-        var oh = obj.hashCode()
-        var sh = System.identityHashCode(obj)
+    fun splitByPredicateStart4() {
+        val arr = arrayOf("should", "only", "count", "5", "instances.")
+        val tmp = str.splitByPredicate(IntPredicate { Character.isWhitespace(it.toChar()) }, 4)
+        assertArrayEquals(arr, tmp)
+    }
+
+    @Test
+    fun splitByPredicateStart5() {
+        val arr = arrayOf("should", "only", "count", "5", "instances.")
+        val tmp = str.splitByPredicate(IntPredicate { Character.isWhitespace(it.toChar()) }, 5)
+        assertArrayEquals(arr, tmp)
+    }
+
+    @Test
+    fun splitByPredicateStart6() {
+        val arr = arrayOf("hould", "only", "count", "5", "instances.")
+        val tmp = str.splitByPredicate(IntPredicate { Character.isWhitespace(it.toChar()) }, 6)
+        assertArrayEquals(arr, tmp)
+    }
+
+    @Test
+    fun splitByPredicateLimit5() {
+        val arr = arrayOf("This", "should", "only", "count", "5 instances.")
+        val tmp = str.splitByPredicate(IntPredicate { Character.isWhitespace(it.toChar()) }, limit = 5)
+        assertArrayEquals(arr, tmp)
+    }
+
+    @Test
+    fun splitByPredicateLimit3() {
+        val arr = arrayOf("This", "should", "only count\r5 instances.")
+        val tmp = str.splitByPredicate(IntPredicate { Character.isWhitespace(it.toChar()) }, limit = 3)
+        assertArrayEquals(arr, tmp)
+    }
+
+    @Test
+    fun splitByPredicateStart6Limit3() {
+        val arr = arrayOf("hould", "only", "count\r5 instances.")
+        val tmp = str.splitByPredicate(IntPredicate { Character.isWhitespace(it.toChar()) }, 6, 3)
+        assertArrayEquals(arr, tmp)
+    }
+
+    @Test fun nullStringify() = assertEquals("null", null.stringify())
+
+    @Test fun objStringify() {
+        val obj: Any = Object()
+        val oh = obj.hashCode()
+        val sh = System.identityHashCode(obj)
         println("Proposed Hash: $oh; System Hash: $sh")
-        assert(tmp == "java.lang.Object@${Integer.toHexString(sh)}$${Integer.toHexString(oh)}") { "Standard-Hash Output doesn't match expected string" }
-        class oj {
+        assertEquals("java.lang.Object@${Integer.toHexString(sh)}$${Integer.toHexString(oh)}", obj.stringify())
+    }
+
+    @Test
+    fun rigStringify() {
+        class Rig {
             override fun hashCode() = 1337
             override fun equals(other: Any?): Boolean {
                 if (this === other) return true
@@ -54,14 +97,10 @@ class StringUtilsTest {
                 return true
             }
         }
-        obj = oj()
-        tmp = obj.stringify()
-        sh = System.identityHashCode(obj)
+
+        val rig = Rig()
+        val sh = System.identityHashCode(rig)
         println("Proposed Hash: 1337; System Hash: $sh")
-        assert(
-            tmp == "net.kjp12.commands.utils.StringUtilsTest\$stringify\$oj@${Integer.toHexString(sh)}$${Integer.toHexString(
-                1337
-            )}"
-        ) { "Override-Hash Output doesn't match expected string" }
+        assertEquals("net.kjp12.commands.utils.StringUtilsTest\$rigStringify\$Rig@${Integer.toHexString(sh)}$${Integer.toHexString(1337)}", rig.stringify())
     }
 }

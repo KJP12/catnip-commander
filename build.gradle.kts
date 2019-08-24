@@ -7,7 +7,7 @@ plugins {
     `java-library`
     maven
     `maven-publish`
-    kotlin("jvm") version "1.3.41"
+    kotlin("jvm") version "1.3.50"
     id("org.ajoberstar.grgit").version("3.1.1")
     id("org.ajoberstar.reckon").version("0.11.0")
 }
@@ -26,13 +26,12 @@ repositories {
 }
 
 dependencies {
-    api("com.mewna:catnip:ca80960")
+    api("com.mewna:catnip:e3d1c74")
     api(kotlin("stdlib-jdk8"))
     testImplementation("ch.qos.logback:logback-classic:1.2.3")
-    testCompile("org.codehaus.groovy", "groovy-jsr223", "3.0.0-beta-3", classifier = "indy")
-    testCompile("junit", "junit", "4.12")
-    testCompile("org.junit.jupiter", "junit-jupiter-api", "5.5.0")
-    testCompile("org.junit.jupiter", "junit-jupiter-engine", "5.5.0")
+    testImplementation("org.codehaus.groovy", "groovy-jsr223", "3.0.0-beta-3", classifier = "indy")
+    testImplementation("org.junit.jupiter", "junit-jupiter-api", "5.5.1")
+    testRuntimeOnly("org.junit.jupiter", "junit-jupiter-engine", "5.5.1")
 }
 
 configure<JavaPluginConvention> {
@@ -81,7 +80,13 @@ tasks {
         dependsOn("test", jar, sourcesJar)
     }
     withType<Test> {
-        useJUnitPlatform()
+        useJUnitPlatform {
+            includeEngines("junit-jupiter")
+        }
+        this.systemProperties(
+            "junit.jupiter.extensions.autodetection.enabled" to "true",
+            "junit.jupiter.testinstance.lifecycle.default" to "per_class"
+        )
     }
     /*register<Task>("gitpatch") {
         //All of these must run successfully for the tag to be allowed to be created.
