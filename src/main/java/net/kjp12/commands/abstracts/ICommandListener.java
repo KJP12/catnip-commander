@@ -74,9 +74,11 @@ public interface ICommandListener {
      * @param msg   Context as {@link Message}. Gives all the information like the raw message, who ran it, etc.
      */
     default void handleThrowable(Throwable cause, @Nullable Message msg) {
-        if (selfHasPermissions(msg, Permission.ADD_REACTIONS)) msg.react("⛔");
         var uid = attemptSend(this, cause, msg);
-        getSendableChannel(msg).subscribe(c -> c.sendMessage("⛔ ``Error " + uid + ": " + cause.getMessage() + "``"));
+        if (msg != null) {
+            if (selfHasPermissions(msg, Permission.ADD_REACTIONS)) msg.react("⛔");
+            getSendableChannel(msg).subscribe(c -> c.sendMessage("⛔ ``Error " + uid + ": " + cause.getClass() + ": " + cause.getMessage() + "``"));
+        }
         LOGGER.error("Error UID: " + uid, cause);
     }
 }

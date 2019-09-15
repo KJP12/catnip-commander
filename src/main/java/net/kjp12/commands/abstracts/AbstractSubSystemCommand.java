@@ -66,7 +66,7 @@ public abstract class AbstractSubSystemCommand extends AbstractCommand implement
 
     @Override
     public String getPrefix(Guild g) {
-        return LISTENER.getPrefix(g);
+        return LISTENER.getPrefix(g) + getFirstAliases() + ' ';
     }
 
     @Override
