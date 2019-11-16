@@ -5,8 +5,6 @@ import com.mewna.catnip.entity.message.Message;
 import javax.annotation.Nonnull;
 import java.util.function.Consumer;
 
-import static net.kjp12.commands.utils.StringUtils.stringify;
-
 public interface IViewable extends ICommand {
     /**
      * Your code for the command instance.
@@ -30,15 +28,15 @@ public interface IViewable extends ICommand {
     default void execute(Message msg, String args, @Nonnull Consumer<Throwable> errorHandler) {
         long l = System.nanoTime();
         try {
-            COMMAND_LOGGER.debug('[' + stringify(this) + "] Running...");
+            COMMAND_LOGGER.debug("[{}] Running.", this);
             if (checkInheritedPermissions(msg, true))
                 if (args != null && !args.isBlank()) {
                     if (checkRuntimePermission(msg, true)) run(msg, args);
                 } else if (checkViewingPermission(msg, true)) view(msg);
-            COMMAND_LOGGER.debug('[' + stringify(this) + "] Completed within " + (System.nanoTime() - l) + "ns");
+            COMMAND_LOGGER.debug("[{}] Completed within {}ns", this, System.nanoTime() - l);
         } catch (Throwable t) {
             errorHandler.accept(t);
-            COMMAND_LOGGER.debug('[' + stringify(this) + "] Failed in " + (System.nanoTime() - l) + "ns. Current stack.", new Throwable());
+            COMMAND_LOGGER.debug("[{}] Failed in {}ns.", this, System.nanoTime() - l, t);
         }
     }
 

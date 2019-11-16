@@ -1,7 +1,5 @@
 package net.kjp12.commands;
 
-import com.koloboke.collect.map.LongObjMap;
-import com.koloboke.collect.map.hash.HashLongObjMaps;
 import net.kjp12.commands.utils.GlobalVariables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,13 +14,18 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
+/**
+ * @deprecated Advanced process execution, tracking and logging should be its own project and not bundled with a Discord commands library.
+ * *This class is largely self-contained, removal should be very minimal. {@link net.kjp12.commands.defaults.owner.ProcessCommand} will either fall back to basic implementation or be removed.*
+ */
+@Deprecated(forRemoval = true)
 public final class Executors extends ThreadGroup {
     public static final Executors INSTANCE = new Executors();
     private static final Runtime RT = Runtime.getRuntime();
     private static final File CURRENT_DIR = new File(".");
     private static final Logger LOGGER = LoggerFactory.getLogger(Executors.class);
     private static final AtomicLong INCREMENT = new AtomicLong(0);
-    private final LongObjMap<ProcessInstance> INSTANCES_ = HashLongObjMaps.newMutableMap();
+    private final Map<Long, ProcessInstance> INSTANCES_ = new HashMap<>();
     public final Map<Long, ProcessInstance> INSTANCES = Collections.unmodifiableMap(INSTANCES_);
 
     private Executors() {
@@ -400,4 +403,5 @@ public final class Executors extends ThreadGroup {
             return i.command().isEmpty() ? info : (info = i);
         }
     }
+
 }

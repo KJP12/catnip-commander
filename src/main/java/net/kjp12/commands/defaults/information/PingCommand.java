@@ -21,7 +21,7 @@ public class PingCommand extends AbstractCommand {
             long a = System.currentTimeMillis(), l = a - b;
             var hb = sm.shard(guild == null ? 0 : (int) ((guild.idAsLong() >> 22) % sm.shardCount())).lastHeartbeatLatency();
             if (channel.isDM() || canEmbed(msg))
-                channel.sendMessage(genBaseEmbed(0x46AF2C, null, msg.guild(), "\uD83C\uDFD3 Pong!", catnip.selfUser(), now())
+                channel.sendMessage(genBaseEmbed(0x46AF2C, 0b0, null, catnip.selfUser(), "\uD83C\uDFD3 Pong!", msg.guild(), now())
                         .field("⌛ Latency", "**" + l + "ms**", true)
                         .field("⏱ Message Delay", "**" + (a - msg.creationTime().toInstant().toEpochMilli()) + "ms**", true)
                         .field("\uD83D\uDC93 Heartbeat", "**" + hb + "ms**", true).build());

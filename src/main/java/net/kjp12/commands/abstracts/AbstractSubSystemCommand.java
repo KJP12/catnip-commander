@@ -4,8 +4,11 @@ import com.mewna.catnip.entity.channel.Webhook;
 import com.mewna.catnip.entity.guild.Guild;
 import com.mewna.catnip.entity.message.Message;
 import net.kjp12.commands.CategorySystem;
+import net.kjp12.commands.defaults.information.HelpCommand;
+import net.kjp12.commands.utils.MiscellaneousUtils;
 
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -35,8 +38,12 @@ public abstract class AbstractSubSystemCommand extends AbstractCommand implement
     public void run(Message message, String args) {
         var p = args.split("[\\h\\s\\v\\n\\r]", 2);
         var command = getCommand(p[0].trim());
-        if (command != null) startCommand(command, message, p.length > 1 ? p[1].trim() : null);
-        else startCommand(defaultCommand, message, ""); //uses default command.
+        if (command != null) startCommand(command, message, p.length > 1 ? p[1].trim() : "");
+        else if (defaultCommand != null) startCommand(defaultCommand, message, ""); //uses default command.
+        else {
+            var msg = HelpCommand.help(message, message.channel(), "", this, this);
+            MiscellaneousUtils.getSendableChannel(message, msg).subscribe(c -> c.sendMessage(msg));
+        }
     }
 
     @Override
@@ -44,17 +51,26 @@ public abstract class AbstractSubSystemCommand extends AbstractCommand implement
         return CMD_CAT;
     }
 
+    public ICommand setDefaultCommand(ICommand ic) {
+        if (ic.getListener() != this)
+            throw new IllegalArgumentException("Command " + ic + " does not belong to " + this);
+        var old = defaultCommand;
+        defaultCommand = ic;
+        return old;
+    }
+
     @Override
     public ICommand addCommand(String alias, ICommand abstractCommand) {
-        return ALIASES.put(alias, abstractCommand);
+        return ALIASES.put(alias.toLowerCase(), abstractCommand);
     }
 
     @Override
     public ICommand getCommand(String alias) {
-        return ALIASES.get(alias);
+        return ALIASES.get(alias.toLowerCase());
     }
 
     @Override
+    @ParametersAreNonnullByDefault
     public void startCommand(ICommand abstractCommand, Message message, String s) {
         abstractCommand.execute(message, s, t -> handleThrowable(t, message));
     }

@@ -31,6 +31,6 @@ public class DumpCommand extends AbstractCommand {
 
     @Override
     public String toDescription(Message msg) {
-        return "Dumps the inserted command\n\nUsage: `" + MiscellaneousUtils.getStackedPrefix(LISTENER, msg.guild()) + "dump <command> [command-args]`";
+        return "Dumps the inserted command\n\nUsage: `" + LISTENER.getStackedPrefix(msg.guild()) + "dump <command> [command-args]`";
     }
 }

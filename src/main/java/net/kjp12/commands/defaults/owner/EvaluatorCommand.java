@@ -20,7 +20,6 @@ public class EvaluatorCommand extends AbstractCommand {
 
     public EvaluatorCommand(ICommandListener icl, ScriptEngine se) {
         super(icl);
-        hidden = true;
         engine = Objects.requireNonNullElseGet(se, () -> SEM.getEngineByName("nashorn"));
     }
 
@@ -56,7 +55,7 @@ public class EvaluatorCommand extends AbstractCommand {
 
         COMMAND_LOGGER.info("Evaluator Input:\n{}\n\nEvaluator Output:\n{}\n", args, s);
         if (s.length() < /*Since there is no variable to reference...*/ 2048 - 11) {
-            var e = genBaseEmbed(0x00FF00, author, guild, "Evaluation", catnip.selfUser(), now()).description("```java\n" + s + "```").build();
+            var e = genBaseEmbed(0x00FF00, author, catnip.selfUser(), "Evaluation", guild, now()).description("```java\n" + s + "```").build();
             getSendableChannel(msg, VIEW_CHANNEL, SEND_MESSAGES, EMBED_LINKS).subscribe(c -> {
                 c.sendMessage(e);
                 if (c.isDM() && selfHasPermissions(msg, ADD_REACTIONS)) msg.react("📬");

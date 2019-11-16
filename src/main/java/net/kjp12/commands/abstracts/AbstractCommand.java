@@ -11,11 +11,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static net.kjp12.commands.utils.StringUtils.stringify;
-
 public abstract class AbstractCommand implements ICommand {
     public final ICommandListener LISTENER;
-    private final List<CategorySystem.Category> CATEGORIES, UNMODIFIABLE;// = new ArrayList<>();
+    private final List<CategorySystem.Category> CATEGORIES, UNMODIFIABLE;
     public boolean hidden = false;
 
     public AbstractCommand(ICommandListener icl) {
@@ -23,13 +21,13 @@ public abstract class AbstractCommand implements ICommand {
         var aliases = toAliases();
         if (aliases == null || aliases.length <= 0) {
             aliases = new String[]{getFirstAliases()};
-            COMMAND_LOGGER.warn("[{}] Missing aliases, will be loaded with {}.", stringify(this), aliases[0]);
+            COMMAND_LOGGER.warn("[{}] Missing aliases, will be loaded with {}.", this, aliases[0]);
             var cmd = icl.addCommand(aliases[0], this);
             if (cmd != null)
-                COMMAND_LOGGER.error("[{}] As {}, clashed with {}!", stringify(this), aliases[0], stringify(cmd));
+                COMMAND_LOGGER.error("[{}] As {}, clashed with {}!", this, aliases[0], cmd);
         } else for (var a : aliases) {
             var cmd = icl.addCommand(a, this);
-            if (cmd != null) COMMAND_LOGGER.error("[{}] As {}, clashed with {}!", stringify(this), a, stringify(cmd));
+            if (cmd != null) COMMAND_LOGGER.error("[{}] As {}, clashed with {}!", this, a, cmd);
         }
         var isDep = getClass().isAnnotationPresent(Deprecated.class);
         var catSys = icl.getCategorySystem();
@@ -38,7 +36,7 @@ public abstract class AbstractCommand implements ICommand {
         for (var cat : toCategories()) CATEGORIES.add(catSys.buildCategory(cat).addCommand(this));
         CATEGORIES.add(catSys.SYSTEM_CATEGORY.addCommand(this));
         if (isDep) {
-            COMMAND_LOGGER.warn("[{}] Deprecated! Assigning deprecated...", stringify(this));
+            COMMAND_LOGGER.warn("[{}] Deprecated! Assigning deprecated...", this);
             CATEGORIES.add(catSys.DEPRECATED_CATEGORY);
         }
     }
@@ -54,7 +52,7 @@ public abstract class AbstractCommand implements ICommand {
         var aliases = toAliases();
         var channel = msg.channel();
         if (!channel.isGuild() || msg.guild().selfMember().hasPermissions(channel.asGuildChannel(), Permission.EMBED_LINKS)) {
-            var eb = MiscellaneousUtils.genBaseEmbed(0x46AF2C, msg.author(), msg.guild(), getFirstAliases() + " | " + getClass().getSimpleName(), null, msg.creationTime()).description(toDescription(msg));
+            var eb = MiscellaneousUtils.genBaseEmbed(0x46AF2C, msg.catnip(), msg.author(), getFirstAliases() + " | " + getClass().getSimpleName(), msg.guild(), msg.creationTime()).description(toDescription(msg));
             if (aliases != null && aliases.length > 0) {
                 var sb = new StringBuilder();
                 for (var a : aliases) sb.append('`').append(a).append("`, ");
@@ -92,7 +90,7 @@ public abstract class AbstractCommand implements ICommand {
     }
 
     public final String toString() {
-        return getFirstAliases() + " | " + getClass().getSimpleName();
+        return getFirstAliases() + " | " + net.kjp12.commands.utils.StringUtils.stringify(this);
     }
 
     public final List<CategorySystem.Category> getCategoryList() {

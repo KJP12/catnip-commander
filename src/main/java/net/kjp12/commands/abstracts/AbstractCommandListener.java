@@ -7,6 +7,7 @@ import io.reactivex.Single;
 import net.kjp12.commands.CategorySystem;
 import net.kjp12.commands.utils.NullWebhook;
 
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -51,9 +52,12 @@ public abstract class AbstractCommandListener implements ICommandListener {
     }
 
     public void setWebhook(Single<Webhook> wh) {
-        try {
-            setWebhook(wh.blockingGet());
+        if (wh != null) try {
+            wh.subscribe(this::setWebhook, t -> handleThrowable(new Exception("Unable to fetch webhook from " + wh, t), null));
         } catch (ResponseException ignored) {
+        }
+        else {
+            setWebhook((Webhook) null);
         }
     }
 
@@ -109,6 +113,7 @@ public abstract class AbstractCommandListener implements ICommandListener {
     }
 
     @Override
+    @ParametersAreNonnullByDefault
     public void startCommand(ICommand ac, Message msg, String args) {
         POOL.submit(() -> ac.execute(msg, args, t -> handleThrowable(t, msg)));
     }

@@ -1,19 +1,13 @@
-import org.ajoberstar.grgit.Grgit
 import org.apache.tools.ant.filters.ReplaceTokens
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.net.URI
 
 plugins {
     `java-library`
     maven
     `maven-publish`
-    kotlin("jvm") version "1.3.50"
-    id("org.ajoberstar.grgit").version("3.1.1")
-    id("org.ajoberstar.reckon").version("0.11.0")
 }
 
-val grgit = Grgit.open(mapOf("dir" to rootDir))
-val ver = Version("1", "0", "0", env("BUILD_NUMBER") ?: env("GIT_COMMIT")?.substring(0..6) ?: grgit.head()?.abbreviatedId ?: "DEV")
+val ver = Version("1", "0", "0", env("BUILD_NUMBER") ?: env("GIT_COMMIT")?.substring(0..6) ?: "DEV")
 
 group = "net.kjp12"
 version = ver
@@ -26,10 +20,13 @@ repositories {
 }
 
 dependencies {
-    api("com.mewna:catnip:a1dab39")
-    api(kotlin("stdlib-jdk8"))
+    api(/*"com.mewna"*/"com.github.kjp12", "catnip", "b85b70817089")
     testImplementation("ch.qos.logback:logback-classic:1.2.3")
-    testImplementation("org.codehaus.groovy", "groovy-jsr223", "3.0.0-beta-3", classifier = "indy")
+    testImplementation("org.codehaus.groovy", "groovy-jsr223", "3.0.0-rc-1", classifier = "indy") {
+        exclude(module = "groovy")
+    }
+    testImplementation("org.codehaus.groovy", "groovy", "3.0.0-rc-1", classifier = "indy")
+    testImplementation("org.mockito:mockito-core:3.1.0")
     testImplementation("org.junit.jupiter", "junit-jupiter-api", "5.5.1")
     testRuntimeOnly("org.junit.jupiter", "junit-jupiter-engine", "5.5.1")
 }
@@ -61,11 +58,6 @@ tasks {
         options.forkOptions.executable = "javac"
         options.isIncremental = true
         options.compilerArgs.addAll(arrayOf("-XDignore.symbol.file", "-Xlint:deprecation", "-Xlint:unchecked"))
-    }
-    withType<KotlinCompile> {
-        kotlinOptions {
-            jvmTarget = "11"
-        }
     }
     val jar = getByName<Jar>("jar") {
         manifest.attributes["Implementation-Version"] = archiveVersion.orNull

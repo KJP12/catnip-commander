@@ -46,7 +46,7 @@ public interface IBotPermissionCommand extends IViewable {
     default boolean checkBotPermissions(Message msg, boolean t, EnumSet<Permission> arr) {
         var c = msg.channel();
         if (!c.isGuild()) {
-            if (MiscellaneousUtils.getGeneralPermissions().containsAll(arr)) return true;
+            if (MiscellaneousUtils.generalPermissions.containsAll(arr)) return true;
             if (t) c.sendMessage("You must be in a guild to use this command!");
             return false;
         }

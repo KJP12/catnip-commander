@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
+import javax.annotation.ParametersAreNonnullByDefault;
 import java.util.function.Consumer;
 
 import static net.kjp12.commands.utils.MiscellaneousUtils.*;
@@ -31,6 +32,21 @@ public interface ICommandListener {
      * @return Prefix as String
      */
     String getPrefix(Guild guild);
+
+    /**
+     * @param guild Guild for the prefix
+     * @return Prefix as String, accounting for all intermediate commands.
+     */
+    default String getStackedPrefix(Guild guild) {
+        var sb = new StringBuilder();
+        var icl = this;
+        while (icl instanceof ICommand) {
+            var ic = (ICommand) icl;
+            sb.insert(0, ' ').insert(0, ic.getFirstAliases());
+            icl = ic.getListener();
+        }
+        return sb.insert(0, icl.getPrefix(guild)).toString();
+    }
 
     /**
      * @return WebhookClient within the Command Listener.
@@ -62,6 +78,7 @@ public interface ICommandListener {
      * @param msg  Context as {@link Message}.
      * @param args Arguments as a singular {@link String}.
      */
+    @ParametersAreNonnullByDefault
     default void startCommand(ICommand ac, Message msg, String args) {
         //providing default method as we can just start it here.
         ac.execute(msg, args, t -> handleThrowable(t, msg));

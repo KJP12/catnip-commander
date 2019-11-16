@@ -3,8 +3,8 @@ package net.kjp12.commands;
 import com.mewna.catnip.entity.guild.Member;
 import com.mewna.catnip.entity.message.Message;
 import com.mewna.catnip.entity.util.Permission;
-import kotlin.jvm.functions.Function3;
 import net.kjp12.commands.abstracts.ICommand;
+import net.kjp12.commands.utils.TriPredicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,7 +53,7 @@ public final class CategorySystem {
 
     /**
      * @param cat   Name of a {@link Category} as {@link String}; If it exists, will use it else create a new one.
-     * @param check Permission checks in a form of a {@link Function3}.
+     * @param check Permission checks in a form of a {@link TriPredicate}.
      *              Respect the input arguments. Arguments...
      *              {@link Message} The message that contains the command
      *              {@link ICommand} The command the message wants to trigger
@@ -61,7 +61,7 @@ public final class CategorySystem {
      *              The returned {@link Boolean} is if the command is allowed to execute or not.
      * @return The built {@link Category} object
      */
-    public final Category buildCategory(String cat, Function3<Message, ICommand, Boolean, Boolean> check) {
+    public final Category buildCategory(String cat, TriPredicate<Message, ICommand, Boolean> check) {
         return buildCategory(cat).applyPermCheck(check);
     }
 
@@ -79,16 +79,16 @@ public final class CategorySystem {
      * This Category class is an independent instance from CategorySystem to avoid a permanently left-behind and unneeded CategorySystem instance.
      * As such, it is up to {@link #buildCategory(String)} to ensure it was properly saved within {@link CategorySystem#CATEGORIES}.
      */
-    public static final class Category implements Function3<Message, ICommand, Boolean, Boolean> {
+    public static final class Category implements TriPredicate<Message, ICommand, Boolean> {
         public final String NAME;
         private final LinkedList<ICommand> COMMANDS;
         private boolean isHidden;
         /**
          * Flags if this object has been finalized. If so, disables {@link #addCommand(ICommand)} which makes this category
-         * effectively just another {@link Function3}.
+         * effectively just another {@link TriPredicate}.
          */
         private volatile boolean finalized;
-        private Function3<Message, ICommand, Boolean, Boolean> permissionCheck;
+        private TriPredicate<Message, ICommand, Boolean> permissionCheck;
 
         {
             COMMANDS = new LinkedList<>();
@@ -98,16 +98,16 @@ public final class CategorySystem {
             LOGGER.debug("[" + (NAME = name) + "] Created");
         }
 
-        private Category(String name, Function3<Message, ICommand, Boolean, Boolean> delegate, boolean hidden) {
+        private Category(String name, TriPredicate<Message, ICommand, Boolean> delegate, boolean hidden) {
             this(name);
             permissionCheck = cyclicInheritanceCheck(delegate);
             isHidden = hidden;
         }
 
-        private Function3<Message, ICommand, Boolean, Boolean> cyclicInheritanceCheck(Function3<Message, ICommand, Boolean, Boolean> delegate) {
+        private TriPredicate<Message, ICommand, Boolean> cyclicInheritanceCheck(TriPredicate<Message, ICommand, Boolean> delegate) {
             if (delegate == this) throw new IllegalArgumentException("Delegate cannot be self (" + NAME + ")");
             if (delegate instanceof Category) { //initial check to avoid unneeded initialization
-                var iterated = new LinkedList<Function3<Message, ICommand, Boolean, Boolean>>();
+                var iterated = new LinkedList<TriPredicate<Message, ICommand, Boolean>>();
                 iterated.add(delegate);
                 var test = ((Category) delegate).permissionCheck;
                 while (test instanceof Category) {
@@ -122,16 +122,16 @@ public final class CategorySystem {
         }
 
         /**
-         * Applies a permission check. Must be applied via {@link CategorySystem#buildCategory(String, Function3)}, which also accepts {@link Category} as its second parameter.
+         * Applies a permission check. Must be applied via {@link CategorySystem#buildCategory(String, TriPredicate)}, which also accepts {@link Category} as its second parameter.
          *
-         * @param check The permission check in the form of a {@link Function3} with the following type parameters...
+         * @param check The permission check in the form of a {@link TriPredicate} with the following type parameters...
          *              {@link Message}     Argument; Context as Message; Used for Author as {@link Member} to check {@link Permission}
          *              {@link ICommand}    Argument; Command being checked on
          *              {@link Boolean}     Argument; If it should throw else return false on failed check
          *              {@link Boolean}     Return; If the permission check passes.
          * @return Self for convenience.
          */
-        private Category applyPermCheck(Function3<Message, ICommand, Boolean, Boolean> check) {
+        private Category applyPermCheck(TriPredicate<Message, ICommand, Boolean> check) {
             LOGGER.debug("[" + NAME + "] Applied check " + (permissionCheck = cyclicInheritanceCheck(check)));
             return this;
         }
@@ -187,7 +187,7 @@ public final class CategorySystem {
         }
 
         public final boolean checkPermission(Message msg, @Nullable ICommand ac, boolean t) {
-            return permissionCheck == null ? true : permissionCheck.invoke(msg, ac, t);
+            return permissionCheck == null || permissionCheck.invoke(msg, ac, t);
         }
 
         public final boolean isHidden() {
@@ -208,11 +208,11 @@ public final class CategorySystem {
         /**
          * Delegating method; passes straight to {@link #permissionCheck} in case this is a parent of another category.
          *
-         * @return if {@link #permissionCheck} is null, true else whatever {@link Function3#invoke(Object, Object, Object)} returns.
+         * @return if {@link #permissionCheck} is null, true else whatever {@link TriPredicate#invoke(Object, Object, Object)} returns.
          */
         @Override
-        public final Boolean invoke(Message message, ICommand iCommand, Boolean throwing) {
-            return permissionCheck == null ? true : permissionCheck.invoke(message, iCommand, throwing);
+        public final boolean invoke(Message message, ICommand iCommand, Boolean throwing) {
+            return permissionCheck == null || permissionCheck.invoke(message, iCommand, throwing);
         }
 
         /**

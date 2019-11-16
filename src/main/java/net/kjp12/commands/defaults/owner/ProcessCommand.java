@@ -3,7 +3,10 @@ package net.kjp12.commands.defaults.owner;
 import com.mewna.catnip.entity.message.Message;
 import com.mewna.catnip.entity.message.MessageOptions;
 import net.kjp12.commands.Executors;
-import net.kjp12.commands.abstracts.*;
+import net.kjp12.commands.abstracts.AbstractCommand;
+import net.kjp12.commands.abstracts.AbstractSubSystemCommand;
+import net.kjp12.commands.abstracts.ICommandListener;
+import net.kjp12.commands.abstracts.IViewable;
 import net.kjp12.commands.defaults.information.HelpCommand;
 
 import static com.mewna.catnip.entity.util.Permission.*;
@@ -12,29 +15,23 @@ import static net.kjp12.commands.utils.MiscellaneousUtils.*;
 import static net.kjp12.commands.utils.StringUtils.indexOf;
 
 public class ProcessCommand extends AbstractSubSystemCommand {
-    private ICommand help = null;
-    public ProcessCommand(ICommandListener cl) {
-        super(cl);
-        hidden = true;
-        defaultCommand = new ProcessList(this);
-        help = new HelpCommand(this, "Process Commands");
-        new ProcessKill(this);
-        new ProcessOutput(this);
-        new ProcessExecute(this);
+    public ProcessCommand(ICommandListener icl) {
+        this(icl, true);
     }
 
     /**
-     * Does not initialize the commands; basically acts like a blank slate.
-     *
-     * @param cl Command Listener instance to initialize with.
-     * @param h  Used to make it hidden or not.
-     *           In a future revision, this parameter will mean if it will load default commands.
-     * @deprecated Signature meaning change incoming. TODO: param h == load default commands?
+     * @param icl          Command Listener instance to initialize with.
+     * @param loadDefaults Load the default commands associated with this command?
      */
-    @Deprecated
-    public ProcessCommand(ICommandListener cl, boolean h) {
-        super(cl);
-        hidden = h;
+    public ProcessCommand(ICommandListener icl, boolean loadDefaults) {
+        super(icl);
+        if (loadDefaults) {
+            defaultCommand = new ProcessList(this);
+            new HelpCommand(this, "Process Commands");
+            new ProcessKill(this);
+            new ProcessOutput(this);
+            new ProcessExecute(this);
+        }
     }
 
     public String[] toAliases() {
@@ -91,7 +88,7 @@ public class ProcessCommand extends AbstractSubSystemCommand {
 
         @Override
         public String toDescription(Message msg) {
-            return "Kills a process.\n\nUsage: `" + getStackedPrefix(LISTENER, msg.guild()) + " kill [PID]`";
+            return "Kills a process.\n\nUsage: `" + LISTENER.getStackedPrefix(msg.guild()) + " kill [PID]`";
         }
 
         @Override
@@ -125,7 +122,7 @@ public class ProcessCommand extends AbstractSubSystemCommand {
             String out = pi.getOut().toString(), err = pi.getErr().toString();
             boolean $ob = out.isBlank(), $eb = err.isBlank();
             getSendableChannel(msg, VIEW_CHANNEL, SEND_MESSAGES, EMBED_LINKS, ATTACH_FILES).subscribe(mc -> {
-                var eb = genBaseEmbed(0x00ff00, msg.author(), msg.guild(), "Process " + pi.PID + " streams.", null, now());
+                var eb = genBaseEmbed(0x00ff00, msg.author(), null, "Process " + pi.PID + " streams.", msg.guild(), now());
                 if ($ob && $eb) mc.sendMessage(eb.description("No process streams available.").build());
                 else if ($ob)
                     if (err.length() < 2048 - 11)
@@ -148,7 +145,7 @@ public class ProcessCommand extends AbstractSubSystemCommand {
 
         @Override
         public String toDescription(Message msg) {
-            return "Gets the output from a process.\n\nUsage: `" + getStackedPrefix(LISTENER, msg.guild()) + " output [PID]`";
+            return "Gets the output from a process.\n\nUsage: `" + LISTENER.getStackedPrefix(msg.guild()) + " output [PID]`";
         }
 
         @Override
@@ -177,7 +174,7 @@ public class ProcessCommand extends AbstractSubSystemCommand {
                         String out = pi.getOut().toString(), err = pi.getErr().toString();
                         boolean $ob = out.isBlank(), $eb = err.isBlank();
                         getSendableChannel(msg, VIEW_CHANNEL, SEND_MESSAGES, EMBED_LINKS, ATTACH_FILES).subscribe(mc -> {
-                            var eb = genBaseEmbed(exit, msg.author(), msg.guild(), "Process " + pi.PID + " exited.", "Process exited with " + exit, now());
+                            var eb = genBaseEmbed(exit, msg.author(), "Process exited with " + exit, "Process " + pi.PID + " exited.", msg.guild(), now());
                             if ($ob && $eb) mc.sendMessage(eb.description("Process exited. (No Output)").build());
                             else if ($ob)
                                 if (err.length() < 2048 - 11)
@@ -204,7 +201,7 @@ public class ProcessCommand extends AbstractSubSystemCommand {
 
         @Override
         public String toDescription(Message msg) {
-            return "Executes a process.\n\nUsage: `" + getStackedPrefix(LISTENER, msg.guild()) + " execute [Program]`";
+            return "Executes a process.\n\nUsage: `" + LISTENER.getStackedPrefix(msg.guild()) + " execute [Program]`";
         }
 
         @Override

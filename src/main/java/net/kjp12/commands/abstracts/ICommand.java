@@ -62,7 +62,7 @@ public interface ICommand {
             COMMAND_LOGGER.debug("[{}] Completed within {}ns", this, System.nanoTime() - l);
         } catch (Throwable t) {
             errorHandler.accept(t);
-            COMMAND_LOGGER.debug("[{}] Failed in {}ns.", this, System.nanoTime() - l, t); //Having the command system handle it; raising to error will be useless if it will be dumped later.
+            COMMAND_LOGGER.debug("[{}] Failed in {}ns.", this, System.nanoTime() - l, t);
         }
     }
 
