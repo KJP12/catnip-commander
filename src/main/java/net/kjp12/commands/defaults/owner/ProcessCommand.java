@@ -42,7 +42,7 @@ public class ProcessCommand extends AbstractSubSystemCommand {
         return new String[]{"owner only"};
     }
 
-    //TODO: Execute help as toDescription; requires partial rewrite, as help was never made to return message objects for other commands.
+    //TODO: Execute help as toDescription.
 
     public String toDescription(Message msg) {
         return "Process Command";

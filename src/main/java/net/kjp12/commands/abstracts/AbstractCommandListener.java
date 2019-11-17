@@ -89,6 +89,7 @@ public abstract class AbstractCommandListener implements ICommandListener {
         String raw = m.content(), prefix = getPrefix(m.guild()).toLowerCase();
         if (raw.toLowerCase().startsWith(prefix)) {
             var p = splitByPredicate(raw, Character::isSpaceChar, prefix.length(), 2);
+            if (p.length == 0) return;
             var cmd = getCommand(p[0]);
             if (cmd != null) startCommand(cmd, m, p.length > 1 ? p[1] : "");
         } else if (raw.length() >= 20) {

@@ -185,8 +185,8 @@ public final class MiscellaneousUtils {
     }
 
     public static void sendError(Webhook hook, Throwable stack, UUID uid, Message msg) throws IOException {
-        if (hook == null) return;
-        EmbedBuilder eb = null;
+        if (hook == null || hook == NullWebhook.theHook) return;
+        EmbedBuilder eb;
         if (msg != null) {
             var auth = msg.author();
             var guild = msg.guild();
@@ -199,10 +199,12 @@ public final class MiscellaneousUtils {
                     .append("\n**Posted** ➠ ").append(msg.creationTime());
             if (edit != null) sb.append("\n**Edited** ➠ " + edit);
             eb.field("Message Information", sb.toString(), true);
+        } else {
+            eb = genBaseEmbed(0xAA1200, 0b10000, hook.catnip(), "Error - " + uid, "Something has failed", null, now());
         }
         try (var sw = new StringWriter(); var pw = new PrintWriter(sw)) {
             stack.printStackTrace(pw);
-            hook.executeWebhook(attachString(new MessageOptions().embed((eb != null ? eb : genBaseEmbed(0xAA1200, 0b10000, hook.catnip(), "Error - " + uid, "Something has failed", null, now())).build()), uid + "-stack", sw.toString()));
+            hook.executeWebhook(attachString(new MessageOptions().embed(eb.build()), uid + ".stack", sw.toString()));
         }
     }
 
