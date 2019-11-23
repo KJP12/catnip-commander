@@ -1,4 +1,3 @@
-import org.apache.tools.ant.filters.ReplaceTokens
 import java.net.URI
 
 plugins {
@@ -37,23 +36,28 @@ configure<JavaPluginConvention> {
 }
 
 tasks {
+    val sysinfo = "CommandSystemInfo.java"
     val sourcesForRelease = register<Copy>("sourcesForRelease") {
         from(sourceSets.getByName("main").allJava) {
-            include("**/CommanderInfo.java")
-            filter(ver, ReplaceTokens::class.java)
+            include("**/$sysinfo")
+            filter {
+                var i = it
+                for (e in ver) i = i.replace("@${e.key}@", e.value)
+                i
+            }
         }
         into("build/filteredSrc")
         includeEmptyDirs = false
     }.get()
     val generateJavaSources = register<SourceTask>("generateJavaSources") {
-        val src = sourceSets.getByName("main").allJava.filter { it.name != "CommanderInfo.java" }.toMutableList()
+        dependsOn(sourcesForRelease)
+        val src = sourceSets.getByName("main").allJava.filter { it.name != sysinfo }.toMutableList()
         src.add(sourcesForRelease.destinationDir)
         setSource(src)
-        dependsOn(sourcesForRelease)
     }.get()
     withType<JavaCompile> {
-        source = generateJavaSources.source
         dependsOn(generateJavaSources)
+        source = generateJavaSources.source
         options.isFork = true
         options.forkOptions.executable = "javac"
         options.isIncremental = true
@@ -63,10 +67,10 @@ tasks {
         manifest.attributes["Implementation-Version"] = archiveVersion.orNull
     }
     val sourcesJar = register<Jar>("sourcesJar") {
-        archiveClassifier.set("sources")
-        from("src/main/java") { exclude("**/CommanderInfo.java") }
-        from(sourcesForRelease.destinationDir)
         dependsOn(sourcesForRelease)
+        archiveClassifier.set("sources")
+        from("src/main/java") { exclude("**/$sysinfo") }
+        from(sourcesForRelease.destinationDir)
     }.get()
     "build" {
         dependsOn("test", jar, sourcesJar)
@@ -108,26 +112,28 @@ fun env(e: String): String? {
 }
 
 data class Version(val major: String, val minor: String, val revision: String, val build: String) : Map<String, String> {
-    override val entries: Set<Map.Entry<String, String>> = setOf("major".entry(major), "minor".entry(minor), "revision".entry(revision), "build".entry(build))
-    override val keys = setOf("major", "minor", "revision", "build")
+    private val version = "$major.$minor.${revision}_$build"
+    override val entries: Set<Map.Entry<String, String>> = setOf("major" entry major, "minor" entry minor, "revision" entry revision, "build" entry build, "version" entry version)
+    override val keys = setOf("major", "minor", "revision", "build", "version")
     override val size = 4
-    override val values = listOf(major, minor, revision, build)
+    override val values = listOf(major, minor, revision, build, version)
     override fun containsKey(key: String) = keys.contains(key)
     override fun containsValue(value: String) = values.contains(value)
 
-    private fun String.entry(o: String) = VersionEntry(this, o)
+    private infix fun String.entry(o: String) = VersionEntry(this, o)
 
     override fun get(key: String) = when (key) {
         "major" -> major
         "minor" -> minor
         "revision" -> revision
         "build" -> build
+        "version" -> version
         else -> null
     }
 
     override fun isEmpty() = false
 
-    override fun toString() = "$major.$minor.${revision}_$build"
+    override fun toString() = version
 }
 
 data class VersionEntry(override val key: String, override val value: String) : Map.Entry<String, String>
