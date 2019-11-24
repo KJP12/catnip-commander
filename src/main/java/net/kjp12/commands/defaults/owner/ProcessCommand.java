@@ -2,19 +2,29 @@ package net.kjp12.commands.defaults.owner;
 
 import com.mewna.catnip.entity.message.Message;
 import com.mewna.catnip.entity.message.MessageOptions;
-import net.kjp12.commands.Executors;
 import net.kjp12.commands.abstracts.AbstractCommand;
 import net.kjp12.commands.abstracts.AbstractSubSystemCommand;
 import net.kjp12.commands.abstracts.ICommandListener;
 import net.kjp12.commands.abstracts.IViewable;
 import net.kjp12.commands.defaults.information.HelpCommand;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static com.mewna.catnip.entity.util.Permission.*;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static net.kjp12.commands.utils.MiscellaneousUtils.*;
+import static net.kjp12.commands.utils.MiscellaneousUtils.attachString;
+import static net.kjp12.commands.utils.MiscellaneousUtils.getSendableChannel;
 import static net.kjp12.commands.utils.StringUtils.indexOf;
 
+// TODO: All processes on system, or restrict to owned processes?
 public class ProcessCommand extends AbstractSubSystemCommand {
+    private static final Map<Long, ImmutablePair<Out, Out>> processOutput = new ConcurrentHashMap<>();
+
     public ProcessCommand(ICommandListener icl) {
         this(icl, true);
     }
@@ -65,20 +75,28 @@ public class ProcessCommand extends AbstractSubSystemCommand {
                     c.sendMessage("Not a number.");
                     return;
                 }
-                var pi = Executors.INSTANCE.INSTANCES.get(a);
-                if (pi == null) {
-                    c.sendMessage("Process not found.");
-                    return;
-                }
-                pi.PROCESS.destroy();
-                c.sendMessage("Destroyed " + pi.PID);
+                ProcessHandle.of(a).ifPresentOrElse(ph -> {
+                    var i = ph.info();
+                    if (ProcessHandle.current().equals(ph.parent().orElse(null))) {
+                        ph.destroy();
+                        c.sendMessage("Killed `" + i.commandLine().orElse("Unknown Command") + "` " + ph.pid());
+                    } else {
+                        c.sendMessage("I don't own process `" + i.command().orElse("Unknown Command") + "`!");
+                    }
+                }, () -> c.sendMessage("Process not found."));
             });
         }
 
         @Override
         public void view(Message msg) {
-            //TODO: Interactive. Consider: All processes on system?
-            getSendableChannel(msg).subscribe(c -> c.sendMessage("Which process would you like me to kill?"));
+            //TODO: Interactive.
+            var sb = new StringBuilder("Which process would you like me to kill?\nUse '").append(LISTENER.getStackedPrefix(msg.guild())).append(" kill [PID]'\n");
+            ProcessHandle.current().children().forEach(ph -> sb.append(ph.pid()).append(" -> ").append(ph.info().commandLine().orElse("Unknown?")));
+            if (sb.length() < 1990) {
+                getSendableChannel(msg).subscribe(c -> c.sendMessage(sb.insert(0, "```css\n").append("```").toString()));
+            } else {
+                getSendableChannel(msg, VIEW_CHANNEL, SEND_MESSAGES, ATTACH_FILES).subscribe(c -> c.sendMessage(attachString(new MessageOptions(), "Processes.txt", sb.toString())));
+            }
         }
 
         @Override
@@ -114,28 +132,18 @@ public class ProcessCommand extends AbstractSubSystemCommand {
                 getSendableChannel(msg).subscribe(c -> c.sendMessage("Not a number."));
                 return;
             }
-            var pi = Executors.INSTANCE.INSTANCES.get(a);
-            if (pi == null) {
-                getSendableChannel(msg).subscribe(c -> c.sendMessage("Process not found."));
-                return;
+            var p = processOutput.get(a);
+            if (p == null) {
+                getSendableChannel(msg).subscribe(c -> c.sendMessage("Process output not found."));
+            } else {
+                Out bytesOut = p.left, bytesErr = p.right;
+                getSendableChannel(msg, VIEW_CHANNEL, SEND_MESSAGES, EMBED_LINKS, ATTACH_FILES).subscribe(mc -> {
+                    var mo = new MessageOptions().content("Process output streams for " + a + '.');
+                    if (!bytesOut.isBlank()) mo.addFile("Out-" + a + ".log", bytesOut.trimmedArray());
+                    if (!bytesErr.isBlank()) mo.addFile("Err-" + a + ".log", bytesErr.trimmedArray());
+                    mc.sendMessage(mo);
+                });
             }
-            String out = pi.getOut().toString(), err = pi.getErr().toString();
-            boolean $ob = out.isBlank(), $eb = err.isBlank();
-            getSendableChannel(msg, VIEW_CHANNEL, SEND_MESSAGES, EMBED_LINKS, ATTACH_FILES).subscribe(mc -> {
-                var eb = genBaseEmbed(0x00ff00, msg.author(), null, "Process " + pi.PID + " streams.", msg.guild(), now());
-                if ($ob && $eb) mc.sendMessage(eb.description("No process streams available.").build());
-                else if ($ob)
-                    if (err.length() < 2048 - 11)
-                        mc.sendMessage(eb.description("```java\n" + err + "```").build());
-                    else
-                        mc.sendMessage(new MessageOptions().embed(eb.build()).addFile("STDERR.txt", err.getBytes(UTF_8)));
-                else {
-                    var opt = out.length() < 2048 - 11 ? new MessageOptions().embed(eb.description("```java\n" + out + "```").build()) :
-                            new MessageOptions().embed(eb.build()).addFile("STDOUT.txt", out.getBytes(UTF_8));
-                    if (!$eb) opt.addFile("STDERR.txt", err.getBytes(UTF_8));
-                    mc.sendMessage(opt);
-                }
-            });
         }
 
         @Override
@@ -169,29 +177,71 @@ public class ProcessCommand extends AbstractSubSystemCommand {
         @SuppressWarnings("ResultOfMethodCallIgnored")
         @Override
         public void run(Message msg, String arguments) throws Throwable {
-            var pie = Executors.INSTANCE.execute(arguments, t -> LISTENER.handleThrowable(t, msg),
-                    (pi, exit) -> {
-                        String out = pi.getOut().toString(), err = pi.getErr().toString();
-                        boolean $ob = out.isBlank(), $eb = err.isBlank();
-                        getSendableChannel(msg, VIEW_CHANNEL, SEND_MESSAGES, EMBED_LINKS, ATTACH_FILES).subscribe(mc -> {
-                            var eb = genBaseEmbed(exit, msg.author(), "Process exited with " + exit, "Process " + pi.PID + " exited.", msg.guild(), now());
-                            if ($ob && $eb) mc.sendMessage(eb.description("Process exited. (No Output)").build());
-                            else if ($ob)
-                                if (err.length() < 2048 - 11)
-                                    mc.sendMessage(eb.description("```java\n" + err + "```").build());
-                                else
-                                    mc.sendMessage(new MessageOptions().embed(eb.build()).addFile("STDERR.txt", err.getBytes(UTF_8)));
-                            else {
-                                var opt = out.length() < 2048 - 11 ? new MessageOptions().embed(eb.description("```java\n" + out + "```").build()) :
-                                        new MessageOptions().embed(eb.build()).addFile("STDOUT.txt", out.getBytes(UTF_8));
-                                if (!$eb) opt.addFile("STDERR.txt", out.getBytes(UTF_8));
-                                mc.sendMessage(opt);
-                            }
-                        });
+            var p = Runtime.getRuntime().exec(arguments);
+            var pid = p.pid();
+            Out bytesOut = new Out(1048576), bytesErr = new Out(1048576);
+            Thread stdout = new Thread("STDOUT " + pid) {
+                @Override
+                public void run() {
+                    try (var in = p.getInputStream()) {
+                        var arr = new byte[1024];
+                        int i;
+                        while ((i = in.read(arr)) >= 0) bytesOut.write(arr, i);
+                    } catch (IOException ioe) {
+                        LISTENER.handleThrowable(ioe, msg);
+                    }
+                }
+            }, stderr = new Thread("STDERR " + pid) {
+                @Override
+                public void run() {
+                    try (var in = p.getErrorStream()) {
+                        var arr = new byte[1024];
+                        int i;
+                        while ((i = in.read(arr)) >= 0) bytesErr.write(arr, i);
+                    } catch (IOException ioe) {
+                        LISTENER.handleThrowable(ioe, msg);
+                    }
+                }
+            }, stddie = new Thread("DEATH " + pid) {
+                @Override
+                public void run() {
+                    var s = new ArrayList<Throwable>();
+                    int exit = -1;
+                    try {
+                        exit = p.waitFor();
+                    } catch (InterruptedException e) {
+                        s.add(e);
+                    }
+                    try {
+                        stderr.join();
+                    } catch (InterruptedException e) {
+                        s.add(e);
+                    }
+                    try {
+                        stdout.join();
+                    } catch (InterruptedException e) {
+                        s.add(e);
+                    }
+                    if (!s.isEmpty()) {
+                        var t = new Exception("Error trying to wait for threads!");
+                        for (var b : s) t.addSuppressed(b);
+                        LISTENER.handleThrowable(t, msg);
+                    }
+                    final int finalExit = exit;
+                    processOutput.remove(pid);
+                    getSendableChannel(msg, VIEW_CHANNEL, SEND_MESSAGES, EMBED_LINKS, ATTACH_FILES).subscribe(mc -> {
+                        var mo = new MessageOptions().content("Process " + pid + " exited with " + finalExit + '.');
+                        if (!bytesOut.isBlank()) mo.addFile("Out-" + pid + ".log", bytesOut.trimmedArray());
+                        if (!bytesErr.isBlank()) mo.addFile("Err-" + pid + ".log", bytesErr.trimmedArray());
+                        mc.sendMessage(mo);
                     });
-            pie.getOut().setPushListener(new Executors.DARNewline("STDOUT " + pie.PID));
-            pie.getErr().setPushListener(new Executors.DARNewline("STDERR " + pie.PID));
-            getSendableChannel(msg).subscribe(c -> c.sendMessage("Running " + pie.PID));
+                }
+            };
+            processOutput.put(pid, ImmutablePair.of(bytesOut, bytesErr));
+            getSendableChannel(msg).subscribe(c -> c.sendMessage("Running " + pid));
+            stdout.start();
+            stderr.start();
+            stddie.start();
         }
 
         @Override
@@ -220,14 +270,11 @@ public class ProcessCommand extends AbstractSubSystemCommand {
         @Override
         public void run(Message msg, String args) {
             var sb = new StringBuilder("Executors Process Information\n\n");
-            for (var i : Executors.INSTANCE.INSTANCES.values()) {
-                var info = i.getInfo(); //No risk of failure.
-                sb.append(i.PID).append(" -> ").append(info.commandLine().orElse("Unknown?"));
-            }
+            ProcessHandle.current().children().forEach(ph -> sb.append(ph.pid()).append(" -> ").append(ph.info().commandLine().orElse("Unknown?")));
             if (sb.length() < 1990)
                 getSendableChannel(msg).subscribe(c -> c.sendMessage(sb.insert(0, "```css\n").append("```").toString()));
             else
-                getSendableChannel(msg, VIEW_CHANNEL, SEND_MESSAGES, ATTACH_FILES).subscribe(c -> c.sendMessage(attachString(new MessageOptions(), "Processes.css", sb.toString())));
+                getSendableChannel(msg, VIEW_CHANNEL, SEND_MESSAGES, ATTACH_FILES).subscribe(c -> c.sendMessage(attachString(new MessageOptions(), "Processes.txt", sb.toString())));
         }
 
         @Override
@@ -243,6 +290,41 @@ public class ProcessCommand extends AbstractSubSystemCommand {
         @Override
         public String toDescription(Message msg) {
             return "Lists processes if they are still alive.";
+        }
+    }
+
+    public static class Out {
+        public final byte[] data;
+        public int index;
+
+        public Out(int len) {
+            data = new byte[len];
+        }
+
+        public void write(byte[] in, int i) {
+            var b = index + i - data.length;
+            if (b > 0) {
+                System.arraycopy(data, b, data, 0, index);
+                index -= b;
+            }
+            System.arraycopy(in, 0, data, index, i);
+            index += i;
+        }
+
+        public String toString() {
+            return new String(data, 0, index, UTF_8);
+        }
+
+        public byte[] trimmedArray() {
+            int s = 0, e = index;
+            while (s < index && Character.isWhitespace(data[s])) s++;
+            while (e > s && Character.isWhitespace(data[e])) e--;
+            return Arrays.copyOfRange(data, s, e);
+        }
+
+        public boolean isBlank() {
+            for (int i = 0; i < index; i++) if (!Character.isWhitespace(data[i])) return false;
+            return true;
         }
     }
 }

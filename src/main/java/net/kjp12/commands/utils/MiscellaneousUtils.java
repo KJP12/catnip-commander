@@ -47,23 +47,8 @@ public final class MiscellaneousUtils {
     private MiscellaneousUtils() {
     }
 
-    @Deprecated(forRemoval = true)
-    public static EmbedBuilder genBaseEmbed(int colour, Object author, Guild guild, String title, Embed.Footer footer, TemporalAccessor time) {
-        return genBaseEmbed(colour, author, footer, title, guild, time);
-    }
-
-    @Deprecated(forRemoval = true)
-    public static EmbedBuilder genBaseEmbed(int colour, Object author, Guild guild, String title, Member footer, TemporalAccessor time) {
-        return genBaseEmbed(colour, author, footer, title, guild, time);
-    }
-
-    @Deprecated(forRemoval = true)
-    public static EmbedBuilder genBaseEmbed(int colour, Object author, Guild guild, String title, User footer, TemporalAccessor time) {
-        return genBaseEmbed(colour, author, footer, title, guild, time);
-    }
-
     /**
-     * @param colour Default colour of the sidebar. -1 for default.
+     * @param colour Default colour of the sidebar. -1 for Discord-default.
      * @param author Usually self. Can be {@link Embed.Author}, {@link Catnip}, {@link Member}, {@link User} and {@link CharSequence}.
      *               When {@link Member} and {@link User}, the output is {@code "User"} and will be used for colour fetching.
      *               A {@link ToIntFunction} maybe provided for custom initialisation. It is assumed that the type is {@link EmbedBuilder}.
@@ -80,26 +65,91 @@ public final class MiscellaneousUtils {
      * @return An {@link EmbedBuilder} primed with your input.
      */
     public static EmbedBuilder genBaseEmbed(int colour, Object author, Object footer, String title, Guild guild, TemporalAccessor time) {
-        return genBaseEmbed(colour, 0b1, author, footer, title, guild, time);
+        return genBaseEmbed(colour, 0b1011_11000L, author, footer, title, guild, time);
     }
 
     /**
      * @param flags Bitwise flags of operation.
-     *              Bits 0-1 : Footer
+     *              Bits 0-1 : Author
      *              0 == KJP12
-     *              1 || 3 == KJP12#3880 196188877885538304
+     *              1 == KJP12#3880 196188877885538304
      *              2 == KJP12#3880
-     *              Bits 2-3 : Author
+     *              3 == KJP12#3880 196188877885538304 - Nickname
+     *              Bits 2-3 : Footer
      *              0 == KJP12
-     *              1 || 3 == KJP12#3880 196188877885538304
+     *              1 == KJP12#3880 196188877885538304
      *              2 == KJP12#3880
+     *              3 == KJP12#3880 196188877885538304 - Nickname
      *              Bits 4-4 : Colour
      *              1 == Default Colour
      * @see #genBaseEmbed(int, Object, Object, String, Guild, TemporalAccessor)
+     * @deprecated Only a compatibility layer, should not be used.
      */
+    @Deprecated(forRemoval = true)
     public static EmbedBuilder genBaseEmbed(int colour, int flags, Object author, Object footer, String title, Guild guild, TemporalAccessor time) {
+        if (flags >>> 5 != 0) return genBaseEmbed(colour, (long) flags, author, footer, title, guild, time);
+        var l = 0b0_1000_11000L;
+        switch (flags & 0b11) {
+            case 1:
+                l |= 0b0_0000_00011L;
+                break;
+            case 2:
+                l |= 0b0_0000_00001L;
+                break;
+            case 3:
+                l |= 0b0_0000_00111L;
+                break;
+        }
+        switch ((flags >>> 2) & 0b11) {
+            case 1:
+                l |= 0b0_0011_00000L;
+                break;
+            case 2:
+                l |= 0b0_0001_00000L;
+                break;
+            case 3:
+                l |= 0b0_0111_00000L;
+                break;
+        }
+        if (((flags >>> 4) & 1) == 1) l |= 0b1_0000_00000;
+        return genBaseEmbed(colour, l, author, footer, title, guild, time);
+    }
+
+    /*
+    TODO: Unit testing
+     Author & Footer: Embed.Author, Catnip, Member, User, String
+       --- Is it present when it's present for us?
+           Is it mutated properly to the bitwise? (Must test every state)
+     Title: String
+       --- Is it present when it's present for us?
+     Guild:
+       --- Does it fetch colours properly?
+     Time: Any timestamp
+       --- Is it present when it's present for us? If so, is it the same as input?
+    */
+
+    /**
+     * @param flags Bitwise flags of operation.
+     *              Bits 0-4 : Author
+     *              0 == Discriminator = KJP12#3880
+     *              1 == Snowflake = KJP12 196188877885538304
+     *              2 == Nickname = KJP12 - Nickname
+     *              3 == Icon
+     *              4 == Link
+     *              Bits 5-8 : Footer
+     *              5 == Discriminator = KJP12#3880
+     *              6 == Snowflake = KJP12 196188877885538304
+     *              7 == Nickname = KJP12 - Nickname
+     *              8 == Icon
+     *              Bits 9-10 : Colour
+     *              9 == Default Colour
+     *              10 == Favour Footer
+     * @see #genBaseEmbed(int, Object, Object, String, Guild, TemporalAccessor)
+     */
+    public static EmbedBuilder genBaseEmbed(final int colour, long flags, Object author, Object footer, String title, Guild guild, TemporalAccessor time) {
         var eb = new EmbedBuilder().timestamp(time);
-        int color = ((flags >> 4) & 1) == 1 ? colour : -1;
+        var cset = ((flags >> 9) & 1) != 0;
+        int color = cset ? colour : -1;
         if (author != null) {
             if (author instanceof Catnip) {
                 author = ((Catnip) author).selfUser();
@@ -108,20 +158,44 @@ public final class MiscellaneousUtils {
                 eb.author((Embed.Author) author);
             } else if (author instanceof Member) {
                 var m = (Member) author;
+                if (guild == null) guild = m.guild();
                 var u = m.user();
                 var a = avatar(u);
                 if (color == -1) color = getColour(m);
-                eb.author(u.username(), a, a);
+                if ((flags & 0b111) != 0) {
+                    var sb = new StringBuilder(u.username());
+                    if ((flags & 1) == 1) sb.append('#').append(u.discriminator());
+                    if (((flags >>> 1) & 1) == 1) sb.append(' ').append(u.idAsLong());
+                    if (((flags >>> 2) & 1) == 1) {
+                        var nick = m.nick();
+                        if (nick != null) sb.append(" - ").append(nick);
+                    }
+                    eb.author(sb.toString(), ((flags >>> 4) & 1) == 1 ? a : null, ((flags >>> 3) & 1) == 1 ? a : null);
+                } else {
+                    eb.author(u.username(), ((flags >>> 4) & 1) == 1 ? a : null, ((flags >>> 3) & 1) == 1 ? a : null);
+                }
             } else if (author instanceof User) {
                 var u = (User) author;
+                var m = guild.member(u.idAsLong());
                 var a = avatar(u);
-                if (color == -1) color = getColour(guild.member(u.idAsLong()));
-                eb.author(u.username(), a, a);
+                if (color == -1) color = getColour(m);
+                if ((flags & 0b111) != 0) {
+                    var sb = new StringBuilder(u.username());
+                    if ((flags & 1) == 1) sb.append('#').append(u.discriminator());
+                    if (((flags >>> 1) & 1) == 1) sb.append(' ').append(u.idAsLong());
+                    if (m != null && ((flags >>> 2) & 1) == 1) {
+                        var nick = m.nick();
+                        if (nick != null) sb.append(" - ").append(nick);
+                    }
+                    eb.author(sb.toString(), ((flags >>> 4) & 1) == 1 ? a : null, ((flags >>> 3) & 1) == 1 ? a : null);
+                } else {
+                    eb.author(u.username(), ((flags >>> 4) & 1) == 1 ? a : null, ((flags >>> 3) & 1) == 1 ? a : null);
+                }
             } else if (author instanceof ToIntFunction) {
                 var f = (ToIntFunction) author;
-                var c = f.applyAsInt(eb);
+                @SuppressWarnings("unchecked") var c = f.applyAsInt(eb);
                 if (color == -1) color = c;
-            } else {
+            } else if (author != null) {
                 eb.author(author.toString());
             }
         }
@@ -133,31 +207,69 @@ public final class MiscellaneousUtils {
                 eb.footer((Embed.Footer) footer);
             } else if (footer instanceof Member) {
                 var m = (Member) footer;
+                if (guild == null) guild = m.guild();
                 var u = m.user();
                 var a = avatar(u);
                 if (color == -1) color = getColour(m);
-                eb.footer((flags & 1) == 1 ? (u.discordTag() + ' ' + u.idAsLong()) : ((flags >> 1) & 1) == 1 ? u.discordTag() : u.username(), a);
+                else if (!cset && ((flags >>> 10) & 1) == 1) {
+                    var c = getColour(m);
+                    if (c != -1) color = c;
+                }
+                if ((flags & 0b111_00000) != 0) {
+                    var sb = new StringBuilder(u.username());
+                    if (((flags >>> 5) & 1) == 1) sb.append('#').append(u.discriminator());
+                    if (((flags >>> 6) & 1) == 1) sb.append(' ').append(u.idAsLong());
+                    if (((flags >>> 7) & 1) == 1) {
+                        var nick = m.nick();
+                        if (nick != null) sb.append(" - ").append(nick);
+                    }
+                    eb.footer(sb.toString(), ((flags >>> 8) & 1) == 1 ? a : null);
+                } else {
+                    eb.footer(u.username(), ((flags >>> 8) & 1) == 1 ? a : null);
+                }
             } else if (footer instanceof User) {
                 var u = (User) footer;
+                var m = guild.member(u.idAsLong());
                 var a = avatar(u);
-                if (color == -1) color = getColour(guild.member(u.idAsLong()));
-                eb.footer((flags & 1) == 1 ? (u.discordTag() + ' ' + u.idAsLong()) : ((flags >> 1) & 1) == 1 ? u.discordTag() : u.username(), a);
+                if (color == -1) color = getColour(m);
+                else if (!cset && ((flags >>> 10) & 1) == 1) {
+                    var c = getColour(m);
+                    if (c != -1) color = c;
+                }
+                if ((flags & 0b111_00000) != 0) {
+                    var sb = new StringBuilder(u.username());
+                    if (((flags >>> 5) & 1) == 1) sb.append('#').append(u.discriminator());
+                    if (((flags >>> 6) & 1) == 1) sb.append(' ').append(u.idAsLong());
+                    if (m != null && ((flags >>> 7) & 1) == 1) {
+                        var nick = m.nick();
+                        if (nick != null) sb.append(" - ").append(nick);
+                    }
+                    eb.footer(sb.toString(), ((flags >>> 8) & 1) == 1 ? a : null);
+                } else {
+                    eb.footer(u.username(), ((flags >>> 8) & 1) == 1 ? a : null);
+                }
             } else if (footer instanceof ToIntFunction) {
                 var f = (ToIntFunction) footer;
-                var c = f.applyAsInt(eb);
-                if (color == -1) color = c;
+                @SuppressWarnings("unchecked") var c = f.applyAsInt(eb);
+                if (color == -1 || (!cset && c != -1 && ((flags >>> 10) & 1) == 1)) color = c;
             } else if (footer != null) {
                 eb.footer(footer.toString(), null);
             }
         }
         if (title != null && !title.isBlank()) eb.title(title);
-        if (color == -1) {
+        if (color == -1 && guild != null) {
             var v = guild.roles().values();
             if (!v.isEmpty()) {
                 var i = v.iterator();
                 Role r = i.next();
-                if (i.hasNext()) for (int s = RANDOM.nextInt(v.size() - 1); s > 0 && i.hasNext(); s--, r = i.next()) ;
-                colour = r.color();
+                if (i.hasNext()) {
+                    int s = RANDOM.nextInt(v.size() - 1);
+                    while (s > 0 && i.hasNext()) {
+                        s--;
+                        r = i.next();
+                    }
+                }
+                color = r.color();
             }
         }
         return eb.color(color == -1 ? colour : color);
@@ -191,29 +303,21 @@ public final class MiscellaneousUtils {
             var auth = msg.author();
             var guild = msg.guild();
             var edit = msg.editedTimestamp();
-            eb = genBaseEmbed(0xAA1200, 0b10100, auth, "Error - " + uid, "Something has failed", guild, now()).description(msg.content());
+            eb = genBaseEmbed(0xAA1200, 0b1_0000_01000L, auth, "Error - " + uid, "Something has failed", guild, now()).description(msg.content());
             var sb = new StringBuilder();
             if (guild != null)
                 sb.append("**Guild** ➠ ").append(guild.name()).append(' ').append(guild.idAsLong()).append('\n');
             sb.append("**Channel** ➠ <#").append(msg.channelIdAsLong()).append("> [").append(msg.channelIdAsLong()).append('-').append(msg.idAsLong()).append("](").append(getLink(msg)).append(')')
                     .append("\n**Posted** ➠ ").append(msg.creationTime());
-            if (edit != null) sb.append("\n**Edited** ➠ " + edit);
+            if (edit != null) sb.append("\n**Edited** ➠ ").append(edit);
             eb.field("Message Information", sb.toString(), true);
         } else {
-            eb = genBaseEmbed(0xAA1200, 0b10000, hook.catnip(), "Error - " + uid, "Something has failed", null, now());
+            eb = genBaseEmbed(0xAA1200, 0b1_0000_01000L, hook.catnip(), "Error - " + uid, "Something has failed", null, now());
         }
         try (var sw = new StringWriter(); var pw = new PrintWriter(sw)) {
             stack.printStackTrace(pw);
             hook.executeWebhook(attachString(new MessageOptions().embed(eb.build()), uid + ".stack", sw.toString()));
         }
-    }
-
-    /**
-     * @deprecated Use {@link ICommandListener#getStackedPrefix(Guild)}
-     */
-    @Deprecated(forRemoval = true)
-    public static String getStackedPrefix(ICommandListener self, Guild guild) {
-        return self.getStackedPrefix(guild);
     }
 
     public static MessageOptions attachString(MessageOptions self, String name, String content) {
