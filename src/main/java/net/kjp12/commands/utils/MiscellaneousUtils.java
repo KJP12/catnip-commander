@@ -39,7 +39,11 @@ public final class MiscellaneousUtils {
     public static final EnumSet<Permission> guildRequiredPermissions =
             EnumSet.of(CREATE_INSTANT_INVITE, KICK_MEMBERS, BAN_MEMBERS, ADMINISTRATOR, MANAGE_CHANNELS, MANAGE_GUILD, VIEW_AUDIT_LOG, MANAGE_MESSAGES, MUTE_MEMBERS, DEAFEN_MEMBERS, MOVE_MEMBERS, PRIORITY_SPEAKER, CHANGE_NICKNAME, MANAGE_NICKNAME, MANAGE_ROLES, MANAGE_WEBHOOKS, MANAGE_EMOJI),
             generalPermissions =
-                    EnumSet.of(ADD_REACTIONS, VIEW_CHANNEL, SEND_MESSAGES, SEND_TTS_MESSAGES, EMBED_LINKS, ATTACH_FILES, READ_MESSAGE_HISTORY, USE_EXTERNAL_EMOJI);
+                    EnumSet.of(ADD_REACTIONS, VIEW_CHANNEL, SEND_MESSAGES, SEND_TTS_MESSAGES, EMBED_LINKS, ATTACH_FILES, READ_MESSAGE_HISTORY, USE_EXTERNAL_EMOJI),
+            messageVASE = EnumSet.of(VIEW_CHANNEL, SEND_MESSAGES, ATTACH_FILES, EMBED_LINKS),
+            messageVSE = EnumSet.of(VIEW_CHANNEL, SEND_MESSAGES, EMBED_LINKS),
+            messageVAS = EnumSet.of(VIEW_CHANNEL, SEND_MESSAGES, ATTACH_FILES),
+            messageVS = EnumSet.of(VIEW_CHANNEL, SEND_MESSAGES);
     public static final long MASK_32 = 0xFFFFFFFFL, MASK_16 = 0xFFFFL;
     public static final Random RANDOM = new Random();
     private static final Logger LOGGER = LoggerFactory.getLogger("MiscellaneousUtils");
@@ -176,7 +180,7 @@ public final class MiscellaneousUtils {
                 }
             } else if (author instanceof User) {
                 var u = (User) author;
-                var m = guild.member(u.idAsLong());
+                var m = guild == null ? null : guild.member(u.idAsLong());
                 var a = avatar(u);
                 if (color == -1) color = getColour(m);
                 if ((flags & 0b111) != 0) {
@@ -192,7 +196,7 @@ public final class MiscellaneousUtils {
                     eb.author(u.username(), ((flags >>> 4) & 1) == 1 ? a : null, ((flags >>> 3) & 1) == 1 ? a : null);
                 }
             } else if (author instanceof ToIntFunction) {
-                var f = (ToIntFunction) author;
+                @SuppressWarnings("rawtypes") var f = (ToIntFunction) author;
                 @SuppressWarnings("unchecked") var c = f.applyAsInt(eb);
                 if (color == -1) color = c;
             } else if (author != null) {
@@ -229,7 +233,7 @@ public final class MiscellaneousUtils {
                 }
             } else if (footer instanceof User) {
                 var u = (User) footer;
-                var m = guild.member(u.idAsLong());
+                var m = guild == null ? null : guild.member(u.idAsLong());
                 var a = avatar(u);
                 if (color == -1) color = getColour(m);
                 else if (!cset && ((flags >>> 10) & 1) == 1) {
@@ -249,7 +253,7 @@ public final class MiscellaneousUtils {
                     eb.footer(u.username(), ((flags >>> 8) & 1) == 1 ? a : null);
                 }
             } else if (footer instanceof ToIntFunction) {
-                var f = (ToIntFunction) footer;
+                @SuppressWarnings("rawtypes") var f = (ToIntFunction) footer;
                 @SuppressWarnings("unchecked") var c = f.applyAsInt(eb);
                 if (color == -1 || (!cset && c != -1 && ((flags >>> 10) & 1) == 1)) color = c;
             } else if (footer != null) {
@@ -258,18 +262,10 @@ public final class MiscellaneousUtils {
         }
         if (title != null && !title.isBlank()) eb.title(title);
         if (color == -1 && guild != null) {
-            var v = guild.roles().values();
-            if (!v.isEmpty()) {
-                var i = v.iterator();
-                Role r = i.next();
-                if (i.hasNext()) {
-                    int s = RANDOM.nextInt(v.size() - 1);
-                    while (s > 0 && i.hasNext()) {
-                        s--;
-                        r = i.next();
-                    }
-                }
-                color = r.color();
+            var v = guild.roles().stream().unordered().mapToInt(Role::color).distinct().toArray();
+            if (v.length != 0) {
+                int i = RANDOM.nextInt(v.length);
+                if (v[i] != 0) color = v[i];
             }
         }
         return eb.color(color == -1 ? colour : color);
@@ -391,15 +387,9 @@ public final class MiscellaneousUtils {
     }
 
     public static Single<? extends MessageChannel> getSendableChannel(Message $, MessageOptions options) {
-        var n = options == null;
-        var e = n || options.embed() != null;
-        var a = n || options.hasFiles();
-        return getSendableChannel($,
-                e && a ? EnumSet.of(VIEW_CHANNEL, SEND_MESSAGES, ATTACH_FILES, EMBED_LINKS) :
-                        e ? EnumSet.of(VIEW_CHANNEL, SEND_MESSAGES, EMBED_LINKS) :
-                                a ? EnumSet.of(VIEW_CHANNEL, SEND_MESSAGES, ATTACH_FILES) :
-                                        EnumSet.of(VIEW_CHANNEL, SEND_MESSAGES)
-        );
+        if (options == null) return getSendableChannel($, messageVS);
+        boolean e = options.embed() != null, a = options.hasFiles();
+        return getSendableChannel($, e && a ? messageVASE : e ? messageVSE : a ? messageVAS : messageVS);
     }
 
     public static Single<? extends MessageChannel> getSendableChannel(Message $, Permission p) {

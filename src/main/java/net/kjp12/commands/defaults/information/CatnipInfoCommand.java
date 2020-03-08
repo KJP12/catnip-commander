@@ -60,7 +60,7 @@ public class CatnipInfoCommand extends AbstractCommand {
         sb.insert(insert, "Failure Rate: " + Math.round((double) failed / (double) total * 100) + "% [" + failed + " / " + total + "]\n");
         MiscellaneousUtils.getSendableChannel(msg).subscribe(c -> {
             if (sb.length() < 2000 - 29)
-                c.sendMessage(sb.insert(0, "**__Shard Info__**```c\n").append("```").toString());
+                c.sendMessage(new MessageOptions().content(sb.insert(0, "**__Shard Info__**```c\n").append("```").toString()).parseNoMentions());
             else
                 c.sendMessage(new MessageOptions().addFile("shardinfo.txt", sb.toString().getBytes(StandardCharsets.UTF_8)));
         }, t -> LISTENER.handleThrowable(t, msg));

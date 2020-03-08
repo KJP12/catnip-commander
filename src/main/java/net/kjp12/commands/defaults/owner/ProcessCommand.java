@@ -79,9 +79,9 @@ public class ProcessCommand extends AbstractSubSystemCommand {
                     var i = ph.info();
                     if (ProcessHandle.current().equals(ph.parent().orElse(null))) {
                         ph.destroy();
-                        c.sendMessage("Killed `" + i.commandLine().orElse("Unknown Command") + "` " + ph.pid());
+                        c.sendMessage(new MessageOptions().content("Killed `" + i.commandLine().orElse("Unknown Command") + "` " + ph.pid()).parseNoMentions());
                     } else {
-                        c.sendMessage("I don't own process `" + i.command().orElse("Unknown Command") + "`!");
+                        c.sendMessage(new MessageOptions().content("I don't own process `" + i.command().orElse("Unknown Command") + "`!").parseNoMentions());
                     }
                 }, () -> c.sendMessage("Process not found."));
             });
@@ -93,7 +93,7 @@ public class ProcessCommand extends AbstractSubSystemCommand {
             var sb = new StringBuilder("Which process would you like me to kill?\nUse '").append(LISTENER.getStackedPrefix(msg.guild())).append(" kill [PID]'\n");
             ProcessHandle.current().children().forEach(ph -> sb.append(ph.pid()).append(" -> ").append(ph.info().commandLine().orElse("Unknown?")));
             if (sb.length() < 1990) {
-                getSendableChannel(msg).subscribe(c -> c.sendMessage(sb.insert(0, "```css\n").append("```").toString()));
+                getSendableChannel(msg).subscribe(c -> c.sendMessage(new MessageOptions().content(sb.insert(0, "```css\n").append("```").toString()).parseNoMentions()));
             } else {
                 getSendableChannel(msg, VIEW_CHANNEL, SEND_MESSAGES, ATTACH_FILES).subscribe(c -> c.sendMessage(attachString(new MessageOptions(), "Processes.txt", sb.toString())));
             }
@@ -230,7 +230,7 @@ public class ProcessCommand extends AbstractSubSystemCommand {
                     final int finalExit = exit;
                     processOutput.remove(pid);
                     getSendableChannel(msg, VIEW_CHANNEL, SEND_MESSAGES, EMBED_LINKS, ATTACH_FILES).subscribe(mc -> {
-                        var mo = new MessageOptions().content("Process " + pid + " exited with " + finalExit + '.');
+                        var mo = new MessageOptions().content("Process `" + pid + "` exited with `" + finalExit + "`.");
                         if (!bytesOut.isBlank()) mo.addFile("Out-" + pid + ".log", bytesOut.trimmedArray());
                         if (!bytesErr.isBlank()) mo.addFile("Err-" + pid + ".log", bytesErr.trimmedArray());
                         mc.sendMessage(mo);
@@ -272,7 +272,7 @@ public class ProcessCommand extends AbstractSubSystemCommand {
             var sb = new StringBuilder("Executors Process Information\n\n");
             ProcessHandle.current().children().forEach(ph -> sb.append(ph.pid()).append(" -> ").append(ph.info().commandLine().orElse("Unknown?")));
             if (sb.length() < 1990)
-                getSendableChannel(msg).subscribe(c -> c.sendMessage(sb.insert(0, "```css\n").append("```").toString()));
+                getSendableChannel(msg).subscribe(c -> c.sendMessage(new MessageOptions().content(sb.insert(0, "```css\n").append("```").toString()).parseNoMentions()));
             else
                 getSendableChannel(msg, VIEW_CHANNEL, SEND_MESSAGES, ATTACH_FILES).subscribe(c -> c.sendMessage(attachString(new MessageOptions(), "Processes.txt", sb.toString())));
         }
@@ -322,6 +322,7 @@ public class ProcessCommand extends AbstractSubSystemCommand {
             return Arrays.copyOfRange(data, s, e);
         }
 
+        @SuppressWarnings("BooleanMethodIsAlwaysInverted")
         public boolean isBlank() {
             for (int i = 0; i < index; i++) if (!Character.isWhitespace(data[i])) return false;
             return true;

@@ -1,6 +1,7 @@
 package net.kjp12.commands.defaults.owner;
 
 import com.mewna.catnip.entity.message.Message;
+import com.mewna.catnip.entity.message.MessageOptions;
 import net.kjp12.commands.abstracts.AbstractCommand;
 import net.kjp12.commands.abstracts.ICommandListener;
 import net.kjp12.commands.utils.MiscellaneousUtils;
@@ -15,7 +16,7 @@ public class DumpCommand extends AbstractCommand {
         var s = args.split(" ", 2);
         var ic = LISTENER.getCommand(s[0]);
         if (ic == null || ic.equals(this))
-            MiscellaneousUtils.getSendableChannel(msg).subscribe(c -> c.sendMessage("Cannot dump the command " + (ic == null ? "null pointer" : ic.getFirstAliases())));
+            MiscellaneousUtils.getSendableChannel(msg).subscribe(c -> c.sendMessage(new MessageOptions().content("Cannot dump the command " + (ic == null ? "null pointer" : ic.getFirstAliases())).parseNoMentions()));
         else ic.execute(msg, s.length > 1 ? s[1] : "", t -> MiscellaneousUtils.attemptSend(LISTENER, t, msg));
     }
 

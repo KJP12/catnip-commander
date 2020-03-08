@@ -2,7 +2,6 @@ import java.net.URI
 
 plugins {
     `java-library`
-    maven
     `maven-publish`
 }
 
@@ -19,15 +18,15 @@ repositories {
 }
 
 dependencies {
-    api(/*"com.mewna"*/"com.github.kjp12", "catnip", "b85b70817089")
+    api("com.mewna", "catnip", "9701219")
     testImplementation("ch.qos.logback:logback-classic:1.2.3")
-    testImplementation("org.codehaus.groovy", "groovy-jsr223", "3.0.0-rc-1", classifier = "indy") {
+    testImplementation("org.codehaus.groovy", "groovy-jsr223", "3.0.1", classifier = "indy") {
         exclude(module = "groovy")
     }
-    testImplementation("org.codehaus.groovy", "groovy", "3.0.0-rc-1", classifier = "indy")
-    testImplementation("org.mockito:mockito-core:3.1.0")
-    testImplementation("org.junit.jupiter", "junit-jupiter-api", "5.5.1")
-    testRuntimeOnly("org.junit.jupiter", "junit-jupiter-engine", "5.5.1")
+    testImplementation("org.codehaus.groovy", "groovy", "3.0.1", classifier = "indy")
+    testImplementation("org.mockito:mockito-core:3.3.0")
+    testImplementation("org.junit.jupiter", "junit-jupiter-api", "5.6.0")
+    testRuntimeOnly("org.junit.jupiter", "junit-jupiter-engine", "5.6.0")
 }
 
 configure<JavaPluginConvention> {
@@ -61,7 +60,7 @@ tasks {
         options.isFork = true
         options.forkOptions.executable = "javac"
         options.isIncremental = true
-        options.compilerArgs.addAll(arrayOf("-XDignore.symbol.file", "-Xlint:deprecation", "-Xlint:unchecked"))
+        options.compilerArgs.addAll(arrayOf("-XDignore.symbol.file", "-Xlint:deprecation", "-Xlint:unchecked", "-encoding", "UTF-8")) //-encoding UTF-8 required for some reason.
     }
     val jar = getByName<Jar>("jar") {
         manifest.attributes["Implementation-Version"] = archiveVersion.orNull

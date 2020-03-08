@@ -2,6 +2,7 @@ package net.kjp12.commands.abstracts;
 
 import com.mewna.catnip.entity.channel.Webhook;
 import com.mewna.catnip.entity.message.Message;
+import com.mewna.catnip.entity.message.MessageOptions;
 import com.mewna.catnip.rest.ResponseException;
 import io.reactivex.Single;
 import net.kjp12.commands.CategorySystem;
@@ -48,7 +49,7 @@ public abstract class AbstractCommandListener implements ICommandListener {
     }
 
     public void setWebhook(Webhook wh) {
-        webhook = wh;
+        webhook = Objects.requireNonNullElse(wh, NullWebhook.theHook);
     }
 
     public void setWebhook(Single<Webhook> wh) {
@@ -57,7 +58,7 @@ public abstract class AbstractCommandListener implements ICommandListener {
         } catch (ResponseException ignored) {
         }
         else {
-            setWebhook((Webhook) null);
+            setWebhook(NullWebhook.theHook);
         }
     }
 
@@ -98,7 +99,7 @@ public abstract class AbstractCommandListener implements ICommandListener {
                 var p = splitByPredicate(raw, Character::isSpaceChar, mention.length(), 2);
                 if (p.length == 0 || p[0] == null || p[0].isBlank()) {
                     //TODO: Customizable message? *probably could put it in a higher level...*
-                    m.channel().sendMessage("**Current prefix is ``" + prefix + "``**\nAlternatively, you can use the mention as a prefix.");
+                    m.channel().sendMessage(new MessageOptions().content("**Current prefix is ``" + prefix + "``**\nAlternatively, you can use the mention as a prefix.").parseNoMentions());
                 } else {
                     var cmd = getCommand(p[0]);
                     if (cmd != null) startCommand(cmd, m, p.length > 1 ? p[1] : "");

@@ -1,8 +1,6 @@
 import com.mewna.catnip.Catnip;
 import com.mewna.catnip.CatnipOptions;
 import com.mewna.catnip.entity.user.Presence;
-import com.mewna.catnip.rest.ratelimit.DefaultRateLimiter;
-import com.mewna.catnip.rest.requester.SerialRequester;
 import com.mewna.catnip.shard.DiscordEvent;
 import com.mewna.catnip.shard.manager.DefaultShardManager;
 import net.kjp12.commands.CommandListener;
@@ -18,6 +16,7 @@ import net.kjp12.commands.impl.*;
 import java.net.InetSocketAddress;
 import java.net.ProxySelector;
 import java.net.http.HttpClient;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import static net.kjp12.commands.utils.MiscellaneousUtils.getOrDefault;
@@ -35,14 +34,14 @@ public class MainTest {
         var options = new CatnipOptions(args[0]);
         if (args.length >= 8) options.apiHost(args[7]);
         if (args.length >= 6 && !args[4].equals("null") && !args[5].equals("null")) {
-            options.requester(new SerialRequester(new DefaultRateLimiter(), HttpClient.newBuilder().proxy(ProxySelector.of(new InetSocketAddress(args[4], Integer.parseInt(args[5]))))));
+            options.httpClient(HttpClient.newBuilder().proxy(ProxySelector.of(new InetSocketAddress(args[4], Integer.parseInt(args[5])))).version(HttpClient.Version.HTTP_2).build());
         }
         int node = args.length < 4 ? 0 : getOrDefault(() -> Integer.parseInt(args[1]), 0),
                 nodes = args.length < 4 ? 1 : getOrDefault(() -> Integer.parseInt(args[2]), 1),
                 shards = args.length < 4 ? 1 : getOrDefault(() -> Integer.parseInt(args[3]), 1),
                 tmp = (shards + nodes - 1) / nodes,
                 offset = tmp * node;
-        options.shardManager(new DefaultShardManager(IntStream.range(offset, offset + (offset + tmp > shards ? shards - offset : tmp))));
+        options.shardManager(new DefaultShardManager(shards, IntStream.range(offset, offset + (offset + tmp > shards ? shards - offset : tmp)).boxed().collect(Collectors.toList())));
         options.initialPresence(Presence.of(Presence.OnlineStatus.DND, Presence.Activity.of("Command System Debugging", Presence.ActivityType.PLAYING)));
         var catnip = Catnip.catnip(options);
         var cl = new CommandListener(g -> "cl!");

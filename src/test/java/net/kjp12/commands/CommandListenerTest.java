@@ -1,6 +1,9 @@
 package net.kjp12.commands;
 
+import com.mewna.catnip.entity.channel.Webhook;
 import com.mewna.catnip.entity.guild.Guild;
+import io.reactivex.Single;
+import io.reactivex.internal.operators.single.SingleJust;
 import net.kjp12.commands.abstracts.AbstractCommandListener;
 import net.kjp12.commands.abstracts.AbstractSubSystemCommand;
 import net.kjp12.commands.abstracts.ICommand;
@@ -13,9 +16,11 @@ import net.kjp12.commands.defaults.owner.EvaluatorCommand;
 import net.kjp12.commands.defaults.owner.GetInviteCommand;
 import net.kjp12.commands.defaults.owner.ProcessCommand;
 import net.kjp12.commands.impl.*;
+import net.kjp12.commands.utils.NullWebhook;
 import org.junit.jupiter.api.DynamicNode;
 import org.junit.jupiter.api.DynamicTest;
 import org.junit.jupiter.api.TestFactory;
+import org.mockito.Mockito;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -25,6 +30,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class CommandListenerTest {
     final String thePrefix = "mockingBird!";
+    final Webhook theWebhook = Mockito.mock(Webhook.class);
     final ICommandListener theListener = new AbstractCommandListener((ExecutorService) null) {
         @Override
         public String getPrefix(Guild guild) {
@@ -55,6 +61,7 @@ public class CommandListenerTest {
     final ICommand[] icl = {theDump, theHelp, theInfo, thePing, theInvite, theProcess, theEvaluator, theUserPerm, theBotPerm, theView, theCommand, theSubSystem},
             ssi = {ssiHelp, ssiUserPerm, ssiBotPerm, ssiView, ssiCommand},
             pcm = {pcmHelp, pcmKill, pcmList, pcmExecute};
+    final ICommandListener[] ici = {theListener, theSubSystem, theProcess};
 
     {
         theSubSystem.setDefaultCommand(ssiHelp);
@@ -112,5 +119,64 @@ public class CommandListenerTest {
                 assertFalse(cat.getCommands().contains(c), cat::toString);
             }
         }));
+    }
+
+    @TestFactory
+    public Iterable<DynamicNode> testWebhooks() {
+        var tests = new ArrayList<DynamicNode>((ici.length) * 8);
+        for (var c : ici) {
+            tests.add(DynamicTest.dynamicTest("Expect Default -> NullWebhook " + c + '(' + c.getClass() + ')', () -> assertEquals(NullWebhook.theHook, c.getWebhook())));
+            tests.add(DynamicTest.dynamicTest("Expect (Webhook)null -> NullWebhook " + c + '(' + c.getClass() + ')', () -> {
+                var tl = (AbstractCommandListener) theListener;
+                tl.setWebhook(theWebhook);
+                assertEquals(theWebhook, tl.getWebhook(), "theListener#getWebhook() is not setting to theWebhook, invalid");
+                tl.setWebhook((Webhook) null);
+                assertEquals(NullWebhook.theHook, c.getWebhook(), c.getClass() + "#getWebhook()");
+            }));
+            tests.add(DynamicTest.dynamicTest("Expect (Single<Webhook>)null -> NullWebhook " + c + '(' + c.getClass() + ')', () -> {
+                var tl = (AbstractCommandListener) theListener;
+                tl.setWebhook(theWebhook);
+                assertEquals(theWebhook, tl.getWebhook(), "theListener#getWebhook() is not setting to theWebhook, invalid");
+                tl.setWebhook((Single<Webhook>) null);
+                assertEquals(NullWebhook.theHook, c.getWebhook(), c.getClass() + "#getWebhook()");
+            }));
+            // Note: The following test set is illegal, as Single.just() does not allow null. However, we're mitigating null risk, so testing anyways.
+            tests.add(DynamicTest.dynamicTest("Expect Single<Webhook>(null) -> NullWebhook " + c + '(' + c.getClass() + ')', () -> {
+                var tl = (AbstractCommandListener) theListener;
+                tl.setWebhook(theWebhook);
+                assertEquals(theWebhook, tl.getWebhook(), "theListener#getWebhook() is not setting to theWebhook, invalid");
+                tl.setWebhook(new SingleJust<>(null));
+                assertEquals(NullWebhook.theHook, c.getWebhook(), c.getClass() + "#getWebhook()");
+            }));
+            tests.add(DynamicTest.dynamicTest("Expect Single.error() -> theWebhook (onError doesn't reset.)" + c + '(' + c.getClass() + ')', () -> {
+                var tl = (AbstractCommandListener) theListener;
+                tl.setWebhook(theWebhook);
+                assertEquals(theWebhook, tl.getWebhook(), "theListener#getWebhook() is not setting to theWebhook, invalid");
+                tl.setWebhook(Single.error(new Throwable("Test Throwable")));
+                assertEquals(theWebhook, c.getWebhook(), c.getClass() + "#getWebhook()");
+            }));
+            tests.add(DynamicTest.dynamicTest("Expect Webhook -> Webhook" + c + '(' + c.getClass() + ')', () -> {
+                var tl = (AbstractCommandListener) theListener;
+                tl.setWebhook(NullWebhook.theHook);
+                assertEquals(NullWebhook.theHook, tl.getWebhook(), "theListener#getWebhook() is not setting to NullWebhook, invalid");
+                tl.setWebhook(theWebhook);
+                assertEquals(theWebhook, c.getWebhook(), c.getClass() + "#getWebhook()");
+            }));
+            tests.add(DynamicTest.dynamicTest("Expect Single<Webhook> -> NullWebhook " + c + '(' + c.getClass() + ')', () -> {
+                var tl = (AbstractCommandListener) theListener;
+                tl.setWebhook(NullWebhook.theHook);
+                assertEquals(NullWebhook.theHook, tl.getWebhook(), "theListener#getWebhook() is not setting to NullWebhook, invalid");
+                tl.setWebhook(Single.just(theWebhook));
+                assertEquals(theWebhook, c.getWebhook(), c.getClass() + "#getWebhook()");
+            }));
+            tests.add(DynamicTest.dynamicTest("Expect Single.error() -> NullWebhook (onError doesn't reset.)" + c + '(' + c.getClass() + ')', () -> {
+                var tl = (AbstractCommandListener) theListener;
+                tl.setWebhook(NullWebhook.theHook);
+                assertEquals(NullWebhook.theHook, tl.getWebhook(), "theListener#getWebhook() is not setting to theWebhook, invalid");
+                tl.setWebhook(Single.error(new Throwable("Test Throwable")));
+                assertEquals(NullWebhook.theHook, c.getWebhook(), c.getClass() + "#getWebhook()");
+            }));
+        }
+        return tests;
     }
 }

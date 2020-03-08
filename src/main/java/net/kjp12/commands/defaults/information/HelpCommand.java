@@ -96,7 +96,7 @@ public class HelpCommand extends AbstractCommand implements IViewable, IBotPermi
                 sb.append('\n');
                 for (var ess : catMap.entrySet())
                     sb.append(ess.getKey()).append('\n').append(ess.getValue()).append("\n\n");
-                return new MessageOptions().content(sb.substring(0, sb.length() - 2));
+                return new MessageOptions().parseNoMentions().content(sb.substring(0, sb.length() - 2));
             }
         } finally {
             //This is to ensure that this *always* gets exceptions passed to the listener, even if exceptions get thrown.
@@ -118,7 +118,7 @@ public class HelpCommand extends AbstractCommand implements IViewable, IBotPermi
     public void run(Message msg, String args) {
         var cmd = LISTENER.getCommand(splitByPredicate(args, Character::isSpaceChar, 0, 2)[0]);
         var chan = msg.channel();
-        if (cmd != null) chan.sendMessage(cmd.toMessage(msg));
+        if (cmd != null) chan.sendMessage(cmd.toMessage(msg).parseNoMentions());
         else chan.sendMessage("Command wasn't found.");
     }
 
@@ -135,7 +135,7 @@ public class HelpCommand extends AbstractCommand implements IViewable, IBotPermi
     @Override
     public String toDescription(Message msg) {
         var pre = LISTENER.getStackedPrefix(msg.guild());
-        return "Returns help to those who need it.\n\n**__Usage__**:\n`" + pre + "help [command]` - Command-specific Help\n`" + pre + "help` - Lists all commands\n\n`Command*` - Bot-side Permission Error\n`Command e` - Permission check thrown an error";
+        return "Returns help to those who need it.\n\n**__Usage__**:\n`" + pre + "help [command]` - Command-specific Help\n`" + pre + "help` - Lists all commands\n\n`Command*` - Bot-side Permission Error\n`Command e` - Permission check threw an error";
     }
 
     @Override
