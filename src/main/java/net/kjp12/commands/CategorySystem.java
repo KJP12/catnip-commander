@@ -139,7 +139,7 @@ public final class CategorySystem {
         /**
          * Internal method for use with {@link ICommand} object initialization.
          * This can be manually forced but the command itself won't register that it had gotten a new category instance to check unless told otherwise.
-         * The implementation of the command may call this method on its own like in the case of {@link net.kjp12.commands.abstracts.AbstractCommand(net.kjp12.commands.abstracts.ICommandListener)}
+         * The implementation of the command may call this method on its own like in the case of {@link net.kjp12.commands.abstracts.AbstractCommand#AbstractCommand(net.kjp12.commands.abstracts.ICommandListener)}
          *
          * @param c An {@link ICommand} object.
          * @return this

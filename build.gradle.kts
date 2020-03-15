@@ -111,6 +111,13 @@ java {
     withJavadocJar()
 }
 
+tasks {
+    withType<Javadoc> {
+        isFailOnError = false
+        options.encoding = "UTF-8"
+    }
+}
+
 publishing {
     repositories {
         // Disallows publishing to GitHub if it isn't running in its action runner.
