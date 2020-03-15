@@ -1,0 +1,28 @@
+name: Release Package
+
+on:
+  release:
+    types: [ created ]
+
+jobs:
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: action/checkout@v2
+      - name: Setup Java 12
+        uses: actions/setup-java@v1
+        with:
+          java-version: 12
+      - name: Allow Gradlew execution
+        run: chmod +x gradlew
+      - name: "Gradle: Build, Test, Publish to Maven and Publish to Github"
+        # We are running the tests again to make sure that we actually pass before pushing a build.
+        # We are also running publish and release under the same command to avoid having to create more than what's needed.
+        run: ./gradlew build test publish gh-release
+        env:
+          upload-asset-url: ${{ github.event.release.upload_url }}
+          USERNAME: ${{ github.actor }}
+          PASSWORD: ${{ secrets.GITHUB_TOKEN }}
+          RUNNER: github
+          BUILD_NUMBER: release

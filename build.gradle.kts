@@ -1,11 +1,18 @@
 import java.net.URI
+import java.net.http.HttpClient
+import java.net.http.HttpRequest
+import java.net.http.HttpResponse
 
 plugins {
     `java-library`
     `maven-publish`
 }
-
-val ver = Version("1", "0", "0", env("BUILD_NUMBER") ?: env("GIT_COMMIT")?.substring(0..6) ?: "DEV")
+val ver = if (env("BUILD_NUMBER") == "release") {
+    val ver = env("GITHUB_REF")!!.split('/') // We trust that this exists as BUILD_NUMBER being set to release will only happen in the action 'release.yml'.
+    val v = ver[ver.size - 1].substring(1).split('.')
+    if (v.size < 3) throw Exception("Version isn't defined properly defined. Gotten GITHUB_REF of `${env("GITHUB_REF")}`; parsed down to `${v}`.")
+    releaseVersion(v[0], v[1], v[2])
+} else Version("1", "0", "0", env("BUILD_NUMBER") ?: env("GITHUB_RUN_ID") ?: env("GIT_COMMIT")?.substring(0..6) ?: env("GITHUB_SHA")?.substring(0..6) ?: "DEV")
 
 group = "net.kjp12"
 version = ver
@@ -35,10 +42,10 @@ configure<JavaPluginConvention> {
 }
 
 tasks {
-    val sysinfo = "CommandSystemInfo.java"
+    val sysinfo = "net/kjp12/commands/CommandSystemInfo.java"
     val sourcesForRelease = register<Copy>("sourcesForRelease") {
         from(sourceSets.getByName("main").allJava) {
-            include("**/$sysinfo")
+            include(sysinfo)
             filter {
                 var i = it
                 for (e in ver) i = i.replace("@${e.key}@", e.value)
@@ -50,7 +57,7 @@ tasks {
     }.get()
     val generateJavaSources = register<SourceTask>("generateJavaSources") {
         dependsOn(sourcesForRelease)
-        val src = sourceSets.getByName("main").allJava.filter { it.name != sysinfo }.toMutableList()
+        val src = sourceSets.getByName("main").allJava.filter { !it.absolutePath.endsWith(sysinfo) }.toMutableList()
         src.add(sourcesForRelease.destinationDir)
         setSource(src)
     }.get()
@@ -67,10 +74,11 @@ tasks {
     }
     val sourcesJar = register<Jar>("sourcesJar") {
         dependsOn(sourcesForRelease)
+        manifest.attributes["Implementation-Version"] = archiveVersion.orNull
         archiveClassifier.set("sources")
-        from("src/main/java") { exclude("**/$sysinfo") }
+        from("src/main/java") { exclude(sysinfo) }
         from(sourcesForRelease.destinationDir)
-    }.get()
+    }
     "build" {
         dependsOn("test", jar, sourcesJar)
     }
@@ -78,28 +86,55 @@ tasks {
         useJUnitPlatform {
             includeEngines("junit-jupiter")
         }
-        this.systemProperties(
-            "junit.jupiter.extensions.autodetection.enabled" to "true",
-            "junit.jupiter.testinstance.lifecycle.default" to "per_class"
-        )
+        this.systemProperties("junit.jupiter.extensions.autodetection.enabled" to "true", "junit.jupiter.testinstance.lifecycle.default" to "per_class")
     }
-    /*register<Task>("gitpatch") {
-        //All of these must run successfully for the tag to be allowed to be created.
-        dependsOn("compileKotlin", "compileJava", "compileTestKotlin", "compileTestJava", "test", "check")
-        doLast {
-            val bytes = Files.readAllBytes(NioPath.of(project.rootDir.toString(), "build.gradle.kts"))
-            val verInfoStart = "// <versionInfo>\n".toByteArray()
-            val verInfoEnd = "// </versionInfo>\n".toByteArray()
-            //This is to know where in the code it is exactly.
-            val s = Bytes.indexOf(bytes, verInfoStart)
-            val e = Bytes.indexOf(bytes, verInfoEnd)
-            val startingBytes = bytes.copyOfRange(0, s + verInfoStart.size)
-            val midBytes = bytes.copyOfRange(s + verInfoStart.size + 1, e)
-            val endingBytes = bytes.copyOfRange(e, bytes.size)
-            //GIT Releases
-        }
-    }*/
+    // This is only for GitHub Actions to run.
+    register<Task>("gh-release") {
+        dependsOn("build")
+        actions.add(Action<Task> {
+            val client = HttpClient.newHttpClient()
+            val uri = env("upload-asset-url")!!.substringBeforeLast('{')
+            for (f in File("./build/libs").listFiles()) {
+                val res = client.send(HttpRequest.newBuilder(URI.create(uri + "?name=${f.name}")).POST(HttpRequest.BodyPublishers.ofFile(f.toPath())).header("Authorization", "token ${env("PASSWORD")}").header("Content-Type", "application/zip").build(), HttpResponse.BodyHandlers.ofString())
+                val code = res.statusCode()
+                if (code < 200 || code > 299) {
+                    throw Exception("Failed to upload file. " + res.body())
+                }
+            }
+        })
+    }
+}
 
+// MUST come after tasks, this one's default task doesn't override on from.
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+publishing {
+    repositories {
+        // Disallows publishing to GitHub if it isn't running in its action runner.
+        // Should avoid any accidental publishing to Github with invalid username and password.
+        if (env("RUNNER") == "github") {
+            maven {
+                name = "GitHubPackages"
+                url = uri("https://maven.pkg.github.com/${env("GITHUB_REPOSITORY")}")
+                credentials {
+                    username = env("USERNAME")
+                    password = env("PASSWORD")
+                }
+            }
+        }
+    }
+    publications {
+        create<MavenPublication>("gpr") {
+            groupId = project.group.toString()
+            artifactId = project.name
+            version = project.version.toString()
+
+            from(components["java"])
+        }
+    }
 }
 
 fun env(e: String): String? {
@@ -110,16 +145,13 @@ fun env(e: String): String? {
     } else s
 }
 
-data class Version(val major: String, val minor: String, val revision: String, val build: String) : Map<String, String> {
-    private val version = "$major.$minor.${revision}_$build"
+data class Version(val major: String, val minor: String, val revision: String, val build: String, val version: String = "$major.$minor.${revision}_$build") : Map<String, String> {
     override val entries: Set<Map.Entry<String, String>> = setOf("major" entry major, "minor" entry minor, "revision" entry revision, "build" entry build, "version" entry version)
     override val keys = setOf("major", "minor", "revision", "build", "version")
-    override val size = 4
     override val values = listOf(major, minor, revision, build, version)
+    override val size = 5
     override fun containsKey(key: String) = keys.contains(key)
     override fun containsValue(value: String) = values.contains(value)
-
-    private infix fun String.entry(o: String) = VersionEntry(this, o)
 
     override fun get(key: String) = when (key) {
         "major" -> major
@@ -134,5 +166,9 @@ data class Version(val major: String, val minor: String, val revision: String, v
 
     override fun toString() = version
 }
+
+fun releaseVersion(major: String, minor: String, revision: String) = Version(major, minor, revision, "release", "$major.$minor.$revision")
+
+infix fun String.entry(o: String) = VersionEntry(this, o)
 
 data class VersionEntry(override val key: String, override val value: String) : Map.Entry<String, String>
