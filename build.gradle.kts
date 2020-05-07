@@ -25,12 +25,12 @@ repositories {
 }
 
 dependencies {
-    api("com.mewna", "catnip", "9701219")
+    api("com.mewna", "catnip", "38b1f24")
     testImplementation("ch.qos.logback:logback-classic:1.2.3")
-    testImplementation("org.codehaus.groovy", "groovy-jsr223", "3.0.1", classifier = "indy") {
+    testImplementation("org.codehaus.groovy", "groovy-jsr223", "3.0.3", classifier = "indy") {
         exclude(module = "groovy")
     }
-    testImplementation("org.codehaus.groovy", "groovy", "3.0.1", classifier = "indy")
+    testImplementation("org.codehaus.groovy", "groovy", "3.0.3", classifier = "indy")
     testImplementation("org.mockito:mockito-core:3.3.0")
     testImplementation("org.junit.jupiter", "junit-jupiter-api", "5.6.0")
     testRuntimeOnly("org.junit.jupiter", "junit-jupiter-engine", "5.6.0")

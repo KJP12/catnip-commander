@@ -4,7 +4,7 @@ import com.mewna.catnip.entity.channel.Webhook;
 import com.mewna.catnip.entity.message.Message;
 import com.mewna.catnip.entity.message.MessageOptions;
 import com.mewna.catnip.rest.ResponseException;
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Single;
 import net.kjp12.commands.CategorySystem;
 import net.kjp12.commands.utils.NullWebhook;
 

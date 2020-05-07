@@ -5,7 +5,7 @@ import com.mewna.catnip.entity.channel.Webhook;
 import com.mewna.catnip.entity.message.Message;
 import com.mewna.catnip.entity.message.MessageOptions;
 import com.mewna.catnip.entity.user.User;
-import io.reactivex.Single;
+import io.reactivex.rxjava3.core.Single;
 
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;

@@ -2,8 +2,8 @@ package net.kjp12.commands;
 
 import com.mewna.catnip.entity.channel.Webhook;
 import com.mewna.catnip.entity.guild.Guild;
-import io.reactivex.Single;
-import io.reactivex.internal.operators.single.SingleJust;
+import io.reactivex.rxjava3.core.Single;
+import io.reactivex.rxjava3.internal.operators.single.SingleJust;
 import net.kjp12.commands.abstracts.AbstractCommandListener;
 import net.kjp12.commands.abstracts.AbstractSubSystemCommand;
 import net.kjp12.commands.abstracts.ICommand;
