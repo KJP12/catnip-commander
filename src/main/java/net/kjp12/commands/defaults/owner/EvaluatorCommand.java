@@ -37,10 +37,12 @@ public class EvaluatorCommand extends AbstractCommand {
         var channel = msg.channel();
         var guild = msg.guild();
         var catnip = msg.catnip();
+        var self = catnip.selfUser();
         var shardManager = catnip.shardManager();
         engine.put("api", catnip);
         engine.put("catnip", catnip);
         engine.put("shard", shardManager.shard(guild == null ? 0 : (int) ((guild.idAsLong() >> 22L) % shardManager.shardCount())));
+        engine.put("self", self);
         engine.put("channel", channel);
         engine.put("message", msg);
         engine.put("msg", msg);
@@ -55,7 +57,7 @@ public class EvaluatorCommand extends AbstractCommand {
 
         COMMAND_LOGGER.info("Evaluator Input:\n{}\n\nEvaluator Output:\n{}\n", args, s);
         if (s.length() < /*Since there is no variable to reference...*/ 2048 - 11) {
-            var e = genBaseEmbed(0x00FF00, 0b10_1000_11111L, author, catnip.selfUser(), "Evaluation", guild, now()).description("```java\n" + s + "```").build();
+            var e = genBaseEmbed(0x00FF00, 0b1000_00000L, null, catnip.selfUser(), "Evaluation", guild, now()).description("```java\n" + s + "```").build();
             getSendableChannel(msg, VIEW_CHANNEL, SEND_MESSAGES, EMBED_LINKS).subscribe(c -> {
                 c.sendMessage(e);
                 if (c.isDM() && selfHasPermissions(msg, ADD_REACTIONS)) msg.react("📬");

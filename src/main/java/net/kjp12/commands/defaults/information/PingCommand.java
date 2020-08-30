@@ -30,7 +30,6 @@ public class PingCommand extends AbstractCommand {
             else
                 m.edit("\uD83C\uDFD3 **__Pong__**!\n⌛ **Latency** = `" + l + "ms`\n⏱ **Message Delay** = `" + (a - msg.creationTime().toInstant().toEpochMilli()) + "ms`\n\uD83D\uDC93 **Heartbeat** = `" + hb + "ms`");
         }, t -> LISTENER.handleThrowable(t, msg)), t -> LISTENER.handleThrowable(t, msg));
-
     }
 
     @Override

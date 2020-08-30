@@ -152,7 +152,7 @@ public final class MiscellaneousUtils {
      */
     public static EmbedBuilder genBaseEmbed(final int colour, long flags, Object author, Object footer, String title, Guild guild, TemporalAccessor time) {
         var eb = new EmbedBuilder().timestamp(time);
-        var cset = ((flags >> 9) & 1) != 0;
+        var cset = (flags & 0x200) != 0;
         int color = cset ? colour : -1;
         if (author != null) {
             if (author instanceof Catnip) {
@@ -169,14 +169,14 @@ public final class MiscellaneousUtils {
                 if ((flags & 0b111) != 0) {
                     var sb = new StringBuilder(u.username());
                     if ((flags & 1) == 1) sb.append('#').append(u.discriminator());
-                    if (((flags >>> 1) & 1) == 1) sb.append(' ').append(u.idAsLong());
-                    if (((flags >>> 2) & 1) == 1) {
+                    if ((flags & 2) == 2) sb.append(' ').append(u.idAsLong());
+                    if ((flags & 4) == 4) {
                         var nick = m.nick();
                         if (nick != null) sb.append(" - ").append(nick);
                     }
-                    eb.author(sb.toString(), ((flags >>> 4) & 1) == 1 ? a : null, ((flags >>> 3) & 1) == 1 ? a : null);
+                    eb.author(sb.toString(), (flags & 0x10) == 0 ? null : a, (flags & 0x8) == 0 ? null : a);
                 } else {
-                    eb.author(u.username(), ((flags >>> 4) & 1) == 1 ? a : null, ((flags >>> 3) & 1) == 1 ? a : null);
+                    eb.author(u.username(), (flags & 0x10) == 0 ? null : a, (flags & 0x8) == 0 ? null : a);
                 }
             } else if (author instanceof User) {
                 var u = (User) author;

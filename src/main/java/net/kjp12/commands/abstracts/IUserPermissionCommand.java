@@ -59,8 +59,9 @@ public interface IUserPermissionCommand extends IBotPermissionCommand {
         }
         var tc = c.asGuildChannel();
         var m = msg.member();
+        assert m != null : "Unexpected null member on message from guild";
         if (!m.hasPermissions(tc, arr)) {
-            MiscellaneousUtils.getSendableChannel(msg, SEND_MESSAGES, EMBED_LINKS).subscribe(mc -> {
+            if (t) MiscellaneousUtils.getSendableChannel(msg, SEND_MESSAGES, EMBED_LINKS).subscribe(mc -> {
                 var req = new ArrayList<>(arr);
                 var eb = new EmbedBuilder().title("You're missing permissions").field("Required", permStr(req), true);
                 req.removeAll(m.permissions(tc));

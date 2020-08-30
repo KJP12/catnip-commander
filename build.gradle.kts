@@ -25,7 +25,7 @@ repositories {
 }
 
 dependencies {
-    api("com.mewna", "catnip", "38b1f24")
+    api("com.mewna", "catnip", "1d4d421")
     testImplementation("ch.qos.logback:logback-classic:1.2.3")
     testImplementation("org.codehaus.groovy", "groovy-jsr223", "3.0.3", classifier = "indy") {
         exclude(module = "groovy")

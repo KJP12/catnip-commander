@@ -83,7 +83,7 @@ public class HelpCommand extends AbstractCommand implements IViewable, IBotPermi
             }
             var guild = channel.isGuild() ? channel.asGuildChannel().guild() : null;
             if (isEmbed) {
-                var eb = MiscellaneousUtils.genBaseEmbed(0x46AF2C, channel.catnip(), null, listener instanceof ICommand ? "Help Menu - " + listener.getPrefix(guild) : "Help Menu", guild, null);
+                var eb = MiscellaneousUtils.genBaseEmbed(0x46AF2C, 0b1000_00000L, null, channel.catnip(), listener instanceof ICommand ? "Help Menu - " + listener.getPrefix(guild) : "Help Menu", guild, null);
                 if (description != null) eb.description(description);
                 for (var ess : catMap.entrySet()) eb.field(ess.getKey(), ess.getValue(), false);
                 return new MessageOptions().embed(eb.build());
